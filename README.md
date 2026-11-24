@@ -21,7 +21,7 @@ docker compose logs -f
 docker compose down
 ```
 
-La aplicación estará disponible inmediatamente en: **`http://localhost:3000`**
+La aplicación estará disponible inmediatamente en: **`http://localhost:3003`**
 
 ---
 
