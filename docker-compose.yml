@@ -1,0 +1,12 @@
+services:
+  menus-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: menus-cafe-maria-bonita
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
