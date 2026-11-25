@@ -75,36 +75,79 @@ export default function AdminBillingPage() {
     };
   }, []);
 
-  const refreshData = () => {
+  const refreshData = async () => {
     setSummary(getBillingSummary());
     setOrders(getStoredOrders());
     setHistory(getBillingHistory());
+    try {
+      const res = await fetch('/api/billing/status', { cache: 'no-store' }).then((r) => r.json());
+      if (res?.success && res.billingStatus) {
+        setSubStatus(res.billingStatus);
+        return;
+      }
+    } catch (e) {
+      console.warn('Error reading /api/billing/status:', e);
+    }
     setSubStatus(evaluateBillingStatus());
   };
 
-  const handleRenewCycle = () => {
-    const res = renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
-    if (res.success) {
-      alert(`✅ ${res.message}`);
-      refreshData();
-    } else {
-      alert(`⚠️ ${res.message}`);
+  const handleRenewCycle = async () => {
+    try {
+      const res = await fetch('/api/billing/renew', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: billingConfig.ownerPin, monthsToAdd: 1 }),
+      }).then((r) => r.json());
+
+      if (res.success) {
+        renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
+        alert(`✅ ${res.message}`);
+        await refreshData();
+      } else {
+        alert(`⚠️ ${res.error || res.message}`);
+      }
+    } catch (err) {
+      const res = renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
+      alert(res.message);
+      await refreshData();
     }
   };
 
-  const handleToggleSuspension = () => {
-    const currentlySuspended = subStatus?.isSuspended;
+  const handleToggleSuspension = async () => {
+    const currentlySuspended = Boolean(subStatus?.isSuspended);
     const confirmMsg = currentlySuspended
       ? '¿Deseas REACTIVAR la plataforma y habilitar los pedidos por WhatsApp nuevamente?'
       : '¿Deseas PAUSAR la plataforma del restaurante? (El menú seguirá visible en modo solo consulta pero no podrán enviar pedidos a WhatsApp)';
     if (!window.confirm(confirmMsg)) return;
 
-    const res = setPlatformSuspension({
-      pin: billingConfig.ownerPin,
-      suspend: !currentlySuspended,
-    });
-    alert(res.message);
-    refreshData();
+    try {
+      const res = await fetch('/api/billing/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: billingConfig.ownerPin,
+          suspend: !currentlySuspended,
+        }),
+      }).then((r) => r.json());
+
+      if (res.success) {
+        setPlatformSuspension({
+          pin: billingConfig.ownerPin,
+          suspend: !currentlySuspended,
+        });
+        alert(res.message);
+        await refreshData();
+      } else {
+        alert(`⚠️ Error: ${res.error || 'No se pudo actualizar el estado'}`);
+      }
+    } catch (err) {
+      const res = setPlatformSuspension({
+        pin: billingConfig.ownerPin,
+        suspend: !currentlySuspended,
+      });
+      alert(res.message);
+      await refreshData();
+    }
   };
 
   const handleSendTestWhatsApp = () => {

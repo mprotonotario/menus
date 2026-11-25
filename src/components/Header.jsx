@@ -23,8 +23,15 @@ export default function Header() {
   const contact = BUSINESS_DATA.contact || {};
   const location = BUSINESS_DATA.location || {};
 
-  const statusBadgeClass = liveStatus?.isOpen ? 'status-badge is-open' : 'status-badge is-closed';
-  const statusBadgeText = liveStatus?.badgeText || 'Abierto Hoy: 7:00 am - 10:00 pm';
+  const isPlatformSuspended = Boolean(BUSINESS_DATA.platformBilling?.isSuspended);
+  const statusBadgeClass = isPlatformSuspended
+    ? 'status-badge is-closed'
+    : liveStatus?.isOpen
+    ? 'status-badge is-open'
+    : 'status-badge is-closed';
+  const statusBadgeText = isPlatformSuspended
+    ? 'Pedidos pausados temporalmente'
+    : liveStatus?.badgeText || 'Abierto Hoy: 7:00 am - 10:00 pm';
 
   // Scrollspy: detecta automáticamente en qué sección nos encontramos
   useEffect(() => {

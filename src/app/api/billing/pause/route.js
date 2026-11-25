@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { setPlatformSuspension, evaluateBillingStatus } from '../../../../lib/billingStatus';
+import { evaluateBillingStatus } from '../../../../lib/billingStatus';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,31 +8,35 @@ export async function POST(request) {
     const body = await request.json();
     const { pin, suspend } = body;
 
-    const result = setPlatformSuspension({ pin, suspend: Boolean(suspend) });
-
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.message }, { status: 401 });
-    }
-
-    // Persistir directamente en data/billing.json
-    try {
-      const billingPath = path.join(process.cwd(), 'data', 'billing.json');
-      if (fs.existsSync(billingPath)) {
-        const current = JSON.parse(fs.readFileSync(billingPath, 'utf8'));
-        current.isSuspended = Boolean(suspend);
-        fs.writeFileSync(billingPath, JSON.stringify(current, null, 2));
+    let billingData = null;
+    const billingPath = path.join(process.cwd(), 'data', 'billing.json');
+    if (fs.existsSync(billingPath)) {
+      try {
+        billingData = JSON.parse(fs.readFileSync(billingPath, 'utf8'));
+      } catch (e) {
+        console.warn('Error reading billing.json:', e);
       }
-    } catch (fsErr) {
-      console.warn('Error al actualizar billing.json:', fsErr);
     }
 
-    const updatedStatus = evaluateBillingStatus({ isSuspended: Boolean(suspend) });
+    const expectedPin = billingData?.ownerPin || '2026';
+    if (String(pin).trim() !== String(expectedPin).trim()) {
+      return NextResponse.json({ success: false, error: 'PIN de seguridad incorrecto.' }, { status: 401 });
+    }
+
+    if (billingData) {
+      billingData.isSuspended = Boolean(suspend);
+      fs.writeFileSync(billingPath, JSON.stringify(billingData, null, 2));
+    }
+
+    const updatedStatus = evaluateBillingStatus(billingData || { isSuspended: Boolean(suspend) });
 
     return NextResponse.json(
       {
         success: true,
-        message: result.message,
-        isSuspended: result.isSuspended,
+        message: suspend
+          ? '🛑 Plataforma pausada exitosamente. Los pedidos por WhatsApp han sido bloqueados.'
+          : '▶️ Plataforma reactivada exitosamente. Los pedidos por WhatsApp vuelven a estar activos.',
+        isSuspended: Boolean(suspend),
         billingStatus: updatedStatus,
       },
       { status: 200 }

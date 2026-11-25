@@ -52,15 +52,18 @@ export default function CartDrawer() {
 
   const contact = BUSINESS_DATA.contact || {};
   const whatsappNumber = contact.whatsappRaw || '529831226847';
+  const isSuspended =
+    Boolean(BUSINESS_DATA?.platformBilling?.isSuspended) ||
+    (billingStatus !== null && !billingStatus.canSendWhatsappOrder);
 
   const sendWhatsAppOrder = () => {
     if (cart.length === 0) return;
 
-    // Verificar si la plataforma se encuentra en modo solo lectura por morosidad
-    if (billingStatus && !billingStatus.canSendWhatsappOrder) {
+    // Verificar si la plataforma se encuentra en modo solo lectura por morosidad o pausa manual
+    if (isSuspended) {
       alert(
-        billingStatus.customerNotice?.message ||
-          'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar nuestro menú y ordenar directamente con el personal en el establecimiento.'
+        billingStatus?.customerNotice?.message ||
+          'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar directamente con el personal en nuestro establecimiento.'
       );
       return;
     }
@@ -259,7 +262,7 @@ export default function CartDrawer() {
             </div>
 
             {/* Botón de Enviar Pedido o Aviso Neutro de Modo Solo Lectura */}
-            {billingStatus && !billingStatus.canSendWhatsappOrder ? (
+            {isSuspended ? (
               <div
                 className="cart-readonly-notice"
                 style={{
