@@ -83,30 +83,25 @@ export default function CartDrawer() {
       return;
     }
 
-    let msg = `*NUEVA COMANDA - ${BUSINESS_DATA.brand?.name || 'CAFETERÍA MARÍA BONITA'}*\n`;
-    msg += `📅 ${new Date().toLocaleDateString('es-MX')} | ⏰ ${new Date().toLocaleTimeString('es-MX', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}\n`;
-    msg += `--------------------------------\n`;
+    const brandName = BUSINESS_DATA.brand?.name || 'Cafetería María Bonita';
 
-    const typeStr = orderType === 'delivery' ? '🛵 Servicio a Domicilio' : '🛍️ Pasar a buscar al establecimiento';
-    msg += `*Tipo de Servicio:* ${typeStr}\n`;
-    msg += `*Cliente:* ${customerName.trim()}\n`;
+    let msg = `¡Hola! 👋 Me gustaría hacer un pedido en *${brandName}*:\n\n`;
+    msg += `👤 *Nombre:* ${customerName.trim()}\n`;
 
     if (orderType === 'delivery') {
-      msg += `*Dirección de Entrega:* ${deliveryAddress.trim()}\n`;
+      msg += `🛵 *Tipo de entrega:* A domicilio\n`;
+      msg += `📍 *Dirección:* ${deliveryAddress.trim()}\n`;
       if (deliveryNotes.trim()) {
-        msg += `*Referencias:* ${deliveryNotes.trim()}\n`;
+        msg += `🧭 *Referencias:* ${deliveryNotes.trim()}\n`;
       }
     } else {
-      msg += `*Modalidad:* Pasar a recoger en barra del establecimiento\n`;
+      msg += `🛍️ *Tipo de entrega:* Paso a buscar al establecimiento (recoger en barra)\n`;
     }
-    msg += `--------------------------------\n`;
-    msg += `*DETALLE DE PLATILLOS:*\n\n`;
 
-    cart.forEach((item, idx) => {
-      msg += `${idx + 1}. *${item.quantity}x ${item.name}* — ${formatMoney(
+    msg += `\n📋 *Mi pedido:*\n`;
+
+    cart.forEach((item) => {
+      msg += `• *${item.quantity}x ${item.name}* — ${formatMoney(
         (item.finalPrice || item.price) * item.quantity
       )}\n`;
 
@@ -121,18 +116,15 @@ export default function CartDrawer() {
         }
       });
       if (optionsLines.length > 0) {
-        msg += `   └ _${optionsLines.join(' | ')}_\n`;
+        msg += `   ↳ _${optionsLines.join(' | ')}_\n`;
       }
       if (item.notes) {
-        msg += `   └ _Nota: ${item.notes}_\n`;
+        msg += `   ↳ _Nota: ${item.notes}_\n`;
       }
-      msg += `\n`;
     });
 
-    msg += `--------------------------------\n`;
-    msg += `*TOTAL A PAGAR:* ${formatMoney(cartSubtotal)} MXN\n`;
-    msg += `--------------------------------\n`;
-    msg += `_Comanda enviada desde el Menú Digital_`;
+    msg += `\n💰 *Total estimado:* ${formatMoney(cartSubtotal)} MXN\n\n`;
+    msg += `¿Me podrían confirmar si tienen todo disponible y el tiempo aproximado para tenerlo listo? ¡Muchas gracias! 😊`;
 
     // Registrar pedido en el sistema contable de la plataforma
     try {
