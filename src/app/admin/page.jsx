@@ -318,7 +318,7 @@ export default function AdminBillingPage() {
     <tr>
       <td style="vertical-align: middle;">
         <div style="margin-bottom: 6px;">
-          <img src="${REDAYSOFT_BADGE_BASE64}" alt="RedaySoft" style="height: 46px; width: auto; border-radius: 8px; display: block; object-fit: contain;" />
+          <img src="${REDAYSOFT_BADGE_BASE64}" alt="RedaySoft" style="height: 54px; width: auto; display: block; object-fit: contain;" />
         </div>
         <div style="font-weight: 700; color: #27170e; font-size: 13px;">Soluciones Digitales</div>
         <div class="brand-sub">Plataforma Cloud & Menús Digitales Interactivos</div>
@@ -1312,11 +1312,18 @@ export default function AdminBillingPage() {
 
             <div style={styles.receiptModalBody}>
               <div style={styles.receiptWatermarkBox}>
-                <div style={{ textAlign: 'center', marginBottom: '0.4rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', marginBottom: '0.6rem' }}>
                   <img
                     src="/assets/redaysoft_logo.png"
                     alt="RedaySoft Soluciones Digitales"
-                    style={{ height: '48px', width: 'auto', borderRadius: '8px', objectFit: 'contain' }}
+                    style={{
+                      height: '64px',
+                      width: 'auto',
+                      maxWidth: '240px',
+                      objectFit: 'contain',
+                      display: 'block',
+                      margin: '0 auto',
+                    }}
                   />
                 </div>
                 <h2 style={{ margin: '0.2rem 0', fontSize: '1.45rem', color: '#27170e' }}>
