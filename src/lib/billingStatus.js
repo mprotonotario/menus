@@ -87,9 +87,12 @@ export function getEffectiveBillingConfig() {
       const rawOverride = localStorage.getItem(RUNTIME_OVERRIDE_KEY);
       if (rawOverride) {
         const override = JSON.parse(rawOverride);
+        // Si el archivo base menuData.js tiene isSuspended: true o en el override es true, se suspende
+        const forcedSuspended = baseConfig.isSuspended === true || override.isSuspended === true;
         return {
           ...baseConfig,
           ...override,
+          isSuspended: forcedSuspended,
           paymentInfo: {
             ...baseConfig.paymentInfo,
             ...(override.paymentInfo || {}),

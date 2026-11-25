@@ -33,8 +33,12 @@ export default function CartDrawer() {
     };
     checkBilling();
     window.addEventListener('mb_billing_renewed', checkBilling);
-    return () => window.removeEventListener('mb_billing_renewed', checkBilling);
-  }, []);
+    window.addEventListener('storage', checkBilling);
+    return () => {
+      window.removeEventListener('mb_billing_renewed', checkBilling);
+      window.removeEventListener('storage', checkBilling);
+    };
+  }, [isCartOpen]);
 
   if (!isCartOpen) return null;
 

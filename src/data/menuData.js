@@ -1806,7 +1806,7 @@ const BUSINESS_DATA = {
     monthlyFee: 300, // Cuota fija mensual de mantenimiento ($249.00 MXN)
     currency: 'MXN',
     // Bandera para pausar la plataforma del restaurante en cualquier momento si no paga
-    isSuspended: false, // false = Operación normal | true = Pausar pedidos por WhatsApp de inmediato (Modo Solo Consulta)
+    isSuspended: true, // false = Operación normal | true = Pausar pedidos por WhatsApp de inmediato (Modo Solo Consulta)
     cycleDays: 30, // Periodo estándar de facturación (mensual)
     graceDays: 5, // Días de gracia tras vencimiento antes de pasar a modo solo lectura
     reminderDaysBefore: 3, // Días previos a fecha de corte para enviar recordatorio automático
