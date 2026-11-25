@@ -10,3 +10,22 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - CRON_SECRET=cron_secret_maria_bonita_2026
+
+  billing-cron:
+    image: node:20-alpine
+    container_name: menus-billing-cron
+    restart: unless-stopped
+    depends_on:
+      - menus-app
+    volumes:
+      - ./scripts:/app/scripts:ro
+    working_dir: /app
+    environment:
+      - TZ=America/Cancun
+      - MENUS_APP_URL=http://menus-app:3000
+      - CRON_SECRET=cron_secret_maria_bonita_2026
+      - RUN_AT_HOUR_CANCUN=9
+      - RUN_AT_MINUTE_CANCUN=0
+    command: ["node", "scripts/cron-daemon.js"]
+
