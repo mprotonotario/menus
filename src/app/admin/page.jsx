@@ -664,7 +664,7 @@ export default function AdminBillingPage() {
   // Si no está autenticado, mostrar pantalla de PIN
   if (!isAuthenticated) {
     return (
-      <div style={styles.authContainer}>
+      <div className="admin-scope" style={styles.authContainer}>
         <div style={styles.authCard}>
           <div style={styles.authIconWrap}>🔒</div>
           <span style={styles.authKicker}>CAFETERÍA MARÍA BONITA</span>
@@ -718,7 +718,7 @@ export default function AdminBillingPage() {
   const paymentInfo = subStatus?.paymentInfo || billingConfig.paymentInfo || {};
 
   return (
-    <div style={styles.dashboardContainer}>
+    <div className="admin-scope" style={styles.dashboardContainer}>
       {/* Barra Superior del Panel */}
       <header style={styles.headerBar}>
         <div style={styles.headerLeft}>
@@ -1500,11 +1500,12 @@ export default function AdminBillingPage() {
             {/* Título Principal */}
             <h3
               style={{
-                fontFamily: 'var(--font-serif, "Playfair Display", Georgia, serif)',
-                fontSize: '1.55rem',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '1.5rem',
                 color: '#27170e',
                 margin: '0 0 0.5rem 0',
-                fontWeight: 700,
+                fontWeight: 800,
+                letterSpacing: '-0.025em',
                 lineHeight: 1.25,
               }}
             >
@@ -1722,7 +1723,9 @@ const styles = {
   authTitle: {
     margin: '0.3rem 0 0.6rem',
     color: '#27170e',
-    fontFamily: 'var(--font-serif)',
+    fontFamily: 'var(--font-sans)',
+    fontWeight: 800,
+    letterSpacing: '-0.025em',
     fontSize: '1.6rem',
   },
   authSubtitle: {
@@ -1866,7 +1869,9 @@ const styles = {
   bannerTitle: {
     margin: 0,
     fontSize: '1.6rem',
-    fontFamily: 'var(--font-serif)',
+    fontFamily: 'var(--font-sans)',
+    fontWeight: 800,
+    letterSpacing: '-0.025em',
     color: '#27170e',
   },
   bannerSubtitle: {
@@ -2058,7 +2063,9 @@ const styles = {
   sectionHeading: {
     margin: 0,
     fontSize: '1.25rem',
-    fontFamily: 'var(--font-serif)',
+    fontFamily: 'var(--font-sans)',
+    fontWeight: 800,
+    letterSpacing: '-0.02em',
     color: '#27170e',
   },
   sectionDesc: {
