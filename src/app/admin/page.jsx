@@ -25,7 +25,7 @@ export default function AdminBillingPage() {
     cycleDays: 30,
     ownerPin: '2026',
     companyName: 'RedaySoft Soluciones Digitales',
-    supportEmail: 'facturacion@redaysoft.com',
+    supportEmail: 'soporte@redaysoft.com',
   };
 
   // Autenticación de dueño por PIN

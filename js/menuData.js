@@ -1815,8 +1815,8 @@ const BUSINESS_DATA = {
     whatsappRecipient: '529831226847', // Alias de receptor
     ownerPin: '2026', // PIN de seguridad para acceder al panel privado de facturación
     stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx', // Llave pública de Stripe configurable
-    companyName: 'RedaySoft Software & Menús Digitales',
-    supportEmail: 'facturacion@redaysoft.com',
+    companyName: 'RedaySoft Soluciones Digitales',
+    supportEmail: 'soporte@redaysoft.com',
     // Notificaciones Automáticas al Administrador vía Telegram Bot
     telegramAdmin: {
       botToken: '',

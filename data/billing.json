@@ -6,13 +6,13 @@
   "cycleDays": 30,
   "graceDays": 5,
   "reminderDaysBefore": 3,
-  "nextBillingDate": "2026-11-28",
+  "nextBillingDate": "2026-12-28",
   "billingPhone": "529831226847",
   "whatsappRecipient": "529831226847",
   "ownerPin": "2026",
   "stripePublishableKey": "pk_test_TYooMQauvdEDq54NiTphI7jx",
-  "companyName": "RedaySoft Software & Menús Digitales",
-  "supportEmail": "facturacion@redaysoft.com",
+  "companyName": "RedaySoft Soluciones Digitales",
+  "supportEmail": "soporte@redaysoft.com",
   "telegramAdmin": {
     "botToken": "",
     "chatId": ""

@@ -12,8 +12,8 @@ const getPlatformBillingConfig = () => {
       cycleDays: 30,
       ownerPin: '2026',
       stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx',
-      companyName: 'RedaySoft Software & Menús Digitales',
-      supportEmail: 'facturacion@redaysoft.com',
+      companyName: 'RedaySoft Soluciones Digitales',
+      supportEmail: 'soporte@redaysoft.com',
     }
   );
 };
@@ -205,7 +205,7 @@ export function getBillingSummary() {
     totalPaidHistory,
     cycleDays,
     companyName: config.companyName || 'RedaySoft Soluciones Digitales',
-    supportEmail: config.supportEmail || 'facturacion@redaysoft.com',
+    supportEmail: config.supportEmail || 'soporte@redaysoft.com',
   };
 }
 
