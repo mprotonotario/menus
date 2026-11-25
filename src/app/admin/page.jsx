@@ -15,6 +15,7 @@ import {
   renewBillingCycle,
   setPlatformSuspension,
 } from '../../lib/billingStatus';
+import { REDAYSOFT_BADGE_BASE64 } from '../../assets/logoBase64';
 
 export default function AdminBillingPage() {
   const { businessData } = useMenuData();
@@ -316,7 +317,9 @@ export default function AdminBillingPage() {
   <table class="header-table">
     <tr>
       <td style="vertical-align: middle;">
-        <div class="brand-title">REDAYSOFT</div>
+        <div style="margin-bottom: 6px;">
+          <img src="${REDAYSOFT_BADGE_BASE64}" alt="RedaySoft" style="height: 46px; width: auto; border-radius: 8px; display: block; object-fit: contain;" />
+        </div>
         <div style="font-weight: 700; color: #27170e; font-size: 13px;">Soluciones Digitales</div>
         <div class="brand-sub">Plataforma Cloud & Menús Digitales Interactivos</div>
         <div class="brand-sub">Atención & Soporte: soporte@redaysoft.com • Cancún / Chetumal, Q. Roo</div>
@@ -1309,10 +1312,14 @@ export default function AdminBillingPage() {
 
             <div style={styles.receiptModalBody}>
               <div style={styles.receiptWatermarkBox}>
-                <span style={{ fontSize: '0.85rem', color: '#c25428', fontWeight: 800, letterSpacing: '1px' }}>
-                  REDAYSOFT SOLUCIONES DIGITALES
-                </span>
-                <h2 style={{ margin: '0.3rem 0', fontSize: '1.5rem', color: '#27170e' }}>
+                <div style={{ textAlign: 'center', marginBottom: '0.4rem' }}>
+                  <img
+                    src="/assets/redaysoft-badge.png"
+                    alt="RedaySoft Soluciones Digitales"
+                    style={{ height: '42px', width: 'auto', borderRadius: '8px', objectFit: 'contain' }}
+                  />
+                </div>
+                <h2 style={{ margin: '0.2rem 0', fontSize: '1.45rem', color: '#27170e' }}>
                   Recibo de Mensualidad
                 </h2>
                 <span style={{ fontSize: '0.85rem', color: '#666' }}>
