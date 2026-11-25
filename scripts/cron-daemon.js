@@ -36,17 +36,22 @@ function getNowInCancun() {
 }
 
 let lastExecutedDate = null;
+const isRunNowFlag = process.argv.includes('--now') || process.argv.includes('-n');
 
-async function executeCronBilling(isStartupCheck = false) {
+async function executeCronBilling(isStartupCheck = false, forceSimulate = false) {
   const now = getNowInCancun();
-  const label = isStartupCheck ? 'VERIFICACIÓN DE ARRANQUE' : 'EJECUCIÓN DIARIA PROGRAMADA';
+  const label = forceSimulate
+    ? 'SIMULACIÓN FORZADA BAJO DEMANDA (--now)'
+    : isStartupCheck
+    ? 'VERIFICACIÓN DE ARRANQUE'
+    : 'EJECUCIÓN DIARIA PROGRAMADA';
   
   console.log(`\n======================================================================`);
   console.log(`[Billing-Cron] ⏰ [${now.full} Cancún] Ejecutando: ${label}`);
   console.log(`[Billing-Cron] Destino: ${TARGET_URL}/api/billing/cron`);
   
   try {
-    const url = `${TARGET_URL}/api/billing/cron?secret=${encodeURIComponent(CRON_SECRET)}`;
+    const url = `${TARGET_URL}/api/billing/cron?secret=${encodeURIComponent(CRON_SECRET)}${forceSimulate ? '&force=true' : ''}`;
     const res = await fetch(url, {
       method: 'GET',
       headers: {
@@ -60,6 +65,7 @@ async function executeCronBilling(isStartupCheck = false) {
 
     if (status === 200) {
       const billing = data.billing || {};
+      const reminder = data.reminder || {};
       console.log(`[Billing-Cron] ✅ Petición exitosa (HTTP 200)`);
       console.log(`[Billing-Cron] 📊 Estado del ciclo en Cancún:`, {
         fechaCancun: data.cancunDate,
@@ -67,17 +73,18 @@ async function executeCronBilling(isStartupCheck = false) {
         diasParaCorte: billing.daysUntilDue ?? billing.daysRemaining,
         estado: billing.status,
         pedidosActivos: billing.canSendWhatsappOrder,
-        recordatorioEnviado: data.reminderDispatched || data.alreadySentToday,
+        recordatorioEnviado: reminder.reminderDispatched || reminder.alreadySentInThisCycle,
+        urlDirectaWhatsApp: reminder.directWhatsappUrl ? 'Generada ✅' : 'No requerida',
       });
 
-      if (data.reminderDispatched || data.alreadySentToday) {
-        console.log(`[Billing-Cron] 📲 ¡AVISO PROCESADO!: Recordatorio de cobro generado (Método: ${data.dispatchMethod || 'wa.me url'}).`);
+      if (reminder.reminderDispatched || reminder.alreadySentInThisCycle) {
+        console.log(`[Billing-Cron] 📲 ¡AVISO PROCESADO!: Recordatorio de cobro generado (Método: ${reminder.dispatchMethod || 'wa.me url'}).`);
       }
       if (data.reason) {
         console.log(`[Billing-Cron] ℹ️ Motivo: ${data.reason}`);
       }
 
-      if (!isStartupCheck) {
+      if (!isStartupCheck && !forceSimulate) {
         lastExecutedDate = now.dateStr;
       }
     } else {
@@ -94,6 +101,13 @@ async function executeCronBilling(isStartupCheck = false) {
 }
 
 function startSchedulerLoop() {
+  if (isRunNowFlag) {
+    executeCronBilling(false, true).then(() => {
+      process.exit(0);
+    });
+    return;
+  }
+
   console.log(`\n======================================================================`);
   console.log(`🚀 [Billing-Cron] Demonio de Facturación Iniciado en Docker`);
   console.log(`🌍 Zona Horaria: ${TIMEZONE}`);

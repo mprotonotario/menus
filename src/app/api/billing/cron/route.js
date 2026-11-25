@@ -21,6 +21,8 @@ async function handleCron(request) {
     const { searchParams } = new URL(request.url);
     const authHeader = request.headers.get('authorization');
     const secretProvided = searchParams.get('secret') || (authHeader ? authHeader.replace(/^Bearer\s+/i, '') : null);
+    const forceSimulate = searchParams.get('force') === 'true' || searchParams.get('simulate') === 'true';
+    const shouldRedirect = searchParams.get('redirect') === 'true';
 
     const expectedSecret = process.env.CRON_SECRET || 'cron_secret_maria_bonita_2026';
 
@@ -38,11 +40,12 @@ async function handleCron(request) {
     const billingStatus = evaluateBillingStatus();
 
     const isTargetReminderDay =
+      forceSimulate ||
       billingStatus.diffDays === billingStatus.reminderDaysBefore ||
       (billingStatus.diffDays <= billingStatus.reminderDaysBefore && billingStatus.diffDays >= 0);
 
     const cycleKey = `${billingStatus.nextBillingDate}_${cancunNow.dateStr}`;
-    const alreadySentToday = lastNotifiedCycle === cycleKey;
+    const alreadySentToday = !forceSimulate && lastNotifiedCycle === cycleKey;
 
     let reminderDispatched = false;
     let dispatchMethod = 'ready_for_webhook_or_url';
@@ -54,8 +57,13 @@ async function handleCron(request) {
       const recipientPhone = billingStatus.billingPhone || '529831226847';
       directWhatsappUrl = `https://wa.me/${recipientPhone}?text=${encodeURIComponent(formattedMessage)}`;
 
+      // Si se solicitó redirección directa por navegador a WhatsApp
+      if (shouldRedirect && directWhatsappUrl) {
+        return NextResponse.redirect(directWhatsappUrl);
+      }
+
       // Si existe un webhook o gateway de WhatsApp configurado por variables de entorno
-      if (process.env.WHATSAPP_GATEWAY_URL && !alreadySentToday) {
+      if (process.env.WHATSAPP_GATEWAY_URL && (!alreadySentToday || forceSimulate)) {
         try {
           await fetch(process.env.WHATSAPP_GATEWAY_URL, {
             method: 'POST',
