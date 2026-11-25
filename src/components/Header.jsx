@@ -151,7 +151,13 @@ export default function Header() {
               </svg>
             </div>
             <div className="brand-text">
-              <span className="brand-title">{brand.name || 'María Bonita'}</span>
+              <span className="brand-title">
+                {brand.name === 'Cafetería María Bonita' || !brand.name ? (
+                  <>Cafetería María<br />Bonita</>
+                ) : (
+                  brand.name
+                )}
+              </span>
               <span className="brand-subtitle">{brand.tagline || 'Cafetería & Panadería'}</span>
             </div>
           </a>
