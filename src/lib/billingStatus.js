@@ -196,6 +196,92 @@ export function evaluateBillingStatus(customConfig = null) {
     paymentInfo: config.paymentInfo || {},
     companyName: config.companyName,
     ownerPin: config.ownerPin,
+    telegramAdmin: config.telegramAdmin || {},
+  };
+}
+
+/**
+ * Genera el mensaje formateado en HTML para el Administrador vía Telegram Bot
+ */
+export function generateTelegramAdminNotification(statusData = null, directWhatsappUrl = '') {
+  const data = statusData || evaluateBillingStatus();
+  const payment = data.paymentInfo || {};
+  const businessName = BUSINESS_DATA.brand?.name || 'Cafetería María Bonita';
+  const phone = data.billingPhone || '529831226847';
+
+  const text = 
+    `🔔 <b>RECORDATORIO DE COBRO — MENÚ DIGITAL</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `🏪 <b>Restaurante:</b> <code>${businessName}</code>\n` +
+    `📅 <b>Fecha de Corte:</b> <code>${data.nextBillingDate}</code> (Faltan <b>${data.daysUntilDue} días</b>)\n` +
+    `💵 <b>Monto Mensual:</b> <b>$${data.monthlyFee}.00 ${data.currency}</b>\n` +
+    `📱 <b>Teléfono Cliente:</b> <code>+${phone}</code>\n` +
+    `🛡️ <b>Gracia:</b> <code>${data.graceDays} días</code> antes de pausar pedidos\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `👉 <i>Presiona el botón inferior para abrir WhatsApp con el mensaje oficial de pago y datos SPEI listo para enviárselo al cliente.</i>`;
+
+  const inlineKeyboard = [
+    [
+      {
+        text: '📲 Abrir WhatsApp del Cliente',
+        url: directWhatsappUrl || `https://wa.me/${phone}`,
+      },
+    ],
+  ];
+
+  if (payment.paymentLink) {
+    inlineKeyboard.push([
+      {
+        text: '💳 Ver Pasarela Stripe',
+        url: payment.paymentLink,
+      },
+    ]);
+  }
+
+  return { text, inlineKeyboard };
+}
+
+/**
+ * Envía notificación a Telegram Bot usando la API oficial
+ */
+export async function sendTelegramAdminNotification({ botToken, chatId, text, inlineKeyboard }) {
+  if (!botToken || !chatId) {
+    return {
+      success: false,
+      error: 'Faltan credenciales de Telegram (TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID)',
+    };
+  }
+
+  const endpoint = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: inlineKeyboard,
+      },
+      disable_web_page_preview: false,
+    }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || !result.ok) {
+    return {
+      success: false,
+      error: result.description || `HTTP Error ${response.status}`,
+      details: result,
+    };
+  }
+
+  return {
+    success: true,
+    messageId: result.result?.message_id,
   };
 }
 

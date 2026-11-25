@@ -65,7 +65,7 @@ async function executeCronBilling(isStartupCheck = false, forceSimulate = false)
 
     if (status === 200) {
       const billing = data.billing || {};
-      const reminder = data.reminder || {};
+      const notification = data.notification || data.reminder || {};
       console.log(`[Billing-Cron] ✅ Petición exitosa (HTTP 200)`);
       console.log(`[Billing-Cron] 📊 Estado del ciclo en Cancún:`, {
         fechaCancun: data.cancunDate,
@@ -73,15 +73,20 @@ async function executeCronBilling(isStartupCheck = false, forceSimulate = false)
         diasParaCorte: billing.daysUntilDue ?? billing.daysRemaining,
         estado: billing.status,
         pedidosActivos: billing.canSendWhatsappOrder,
-        recordatorioEnviado: reminder.reminderDispatched || reminder.alreadySentInThisCycle,
-        urlDirectaWhatsApp: reminder.directWhatsappUrl ? 'Generada ✅' : 'No requerida',
+        avisoProcesado: notification.reminderDispatched || notification.alreadySentInThisCycle,
+        metodo: notification.dispatchMethod,
       });
 
-      if (reminder.reminderDispatched || reminder.alreadySentInThisCycle) {
-        console.log(`[Billing-Cron] 📲 ¡AVISO PROCESADO!: Recordatorio de cobro generado (Método: ${reminder.dispatchMethod || 'wa.me url'}).`);
+      if (notification.telegramStatus?.success) {
+        console.log(`[Billing-Cron] 🤖 Telegram Bot: ¡Mensaje entregado exitosamente al Administrador! (MsgID: ${notification.telegramStatus.messageId})`);
+      } else if (notification.dispatchMethod === 'telegram_credentials_pending') {
+        console.log(`[Billing-Cron] ℹ️ Telegram Bot: Pendiente de credenciales (define TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID para recibirlo directo en Telegram).`);
+      } else if (notification.telegramStatus?.error) {
+        console.log(`[Billing-Cron] ⚠️ Error en Telegram Bot: ${notification.telegramStatus.error}`);
       }
-      if (data.reason) {
-        console.log(`[Billing-Cron] ℹ️ Motivo: ${data.reason}`);
+
+      if (notification.directWhatsappUrl) {
+        console.log(`[Billing-Cron] 📲 Botón WhatsApp al Cliente: ${notification.directWhatsappUrl}`);
       }
 
       if (!isStartupCheck && !forceSimulate) {

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import {
   evaluateBillingStatus,
   generateWhatsappReminderMessage,
+  generateTelegramAdminNotification,
+  sendTelegramAdminNotification,
   getCancunDateParts,
 } from '../../../../lib/billingStatus';
 
@@ -48,9 +50,11 @@ async function handleCron(request) {
     const alreadySentToday = !forceSimulate && lastNotifiedCycle === cycleKey;
 
     let reminderDispatched = false;
-    let dispatchMethod = 'ready_for_webhook_or_url';
+    let dispatchMethod = 'telegram_admin_notify';
     let formattedMessage = '';
     let directWhatsappUrl = '';
+    let telegramResult = null;
+    let telegramMessage = '';
 
     if (isTargetReminderDay) {
       formattedMessage = generateWhatsappReminderMessage(billingStatus);
@@ -62,27 +66,23 @@ async function handleCron(request) {
         return NextResponse.redirect(directWhatsappUrl);
       }
 
-      // Si existe un webhook o gateway de WhatsApp configurado por variables de entorno
-      if (process.env.WHATSAPP_GATEWAY_URL && (!alreadySentToday || forceSimulate)) {
-        try {
-          await fetch(process.env.WHATSAPP_GATEWAY_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(process.env.WHATSAPP_GATEWAY_TOKEN
-                ? { Authorization: `Bearer ${process.env.WHATSAPP_GATEWAY_TOKEN}` }
-                : {}),
-            },
-            body: JSON.stringify({
-              to: recipientPhone,
-              message: formattedMessage,
-            }),
-          });
-          dispatchMethod = 'webhook_dispatched';
-        } catch (gatewayErr) {
-          console.error('Error invoking WhatsApp gateway:', gatewayErr);
-          dispatchMethod = 'gateway_error_fallback_url';
-        }
+      // Generar notificación para el Administrador en Telegram con botón a WhatsApp
+      const tgPayload = generateTelegramAdminNotification(billingStatus, directWhatsappUrl);
+      telegramMessage = tgPayload.text;
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || billingStatus.telegramAdmin?.botToken;
+      const chatId = process.env.TELEGRAM_CHAT_ID || billingStatus.telegramAdmin?.chatId;
+
+      if (botToken && chatId && (!alreadySentToday || forceSimulate)) {
+        telegramResult = await sendTelegramAdminNotification({
+          botToken,
+          chatId,
+          text: tgPayload.text,
+          inlineKeyboard: tgPayload.inlineKeyboard,
+        });
+        dispatchMethod = telegramResult.success ? 'telegram_delivered' : 'telegram_failed';
+      } else if (!botToken || !chatId) {
+        dispatchMethod = 'telegram_credentials_pending';
       }
 
       lastNotifiedCycle = cycleKey;
@@ -106,14 +106,20 @@ async function handleCron(request) {
           monthlyFee: billingStatus.monthlyFee,
           currency: billingStatus.currency,
         },
-        reminder: {
+        notification: {
+          channel: 'telegram_bot_admin',
           shouldSendToday: isTargetReminderDay,
           alreadySentInThisCycle: alreadySentToday,
           reminderDispatched,
           dispatchMethod,
-          recipient: billingStatus.billingPhone,
+          clientPhone: billingStatus.billingPhone,
           directWhatsappUrl,
-          messagePreview: formattedMessage ? formattedMessage.slice(0, 160) + '...' : null,
+          telegramStatus: telegramResult || (dispatchMethod === 'telegram_credentials_pending' ? {
+            success: false,
+            note: 'Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en docker-compose.yml o menuData.js para recibir la notificación automática en tu Telegram',
+          } : null),
+          telegramMessagePreview: telegramMessage ? telegramMessage.slice(0, 150) + '...' : null,
+          whatsappMessageForClient: formattedMessage,
         },
       },
       { status: 200 }

@@ -1815,6 +1815,11 @@ const BUSINESS_DATA = {
     stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx', // Llave pública de Stripe configurable
     companyName: 'RedaySoft Software & Menús Digitales',
     supportEmail: 'facturacion@redaysoft.com',
+    // Notificaciones Automáticas al Administrador vía Telegram Bot
+    telegramAdmin: {
+      botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+      chatId: process.env.TELEGRAM_CHAT_ID || '',
+    },
     paymentInfo: {
       bank: 'BBVA México',
       clabe: '012180001234567890',

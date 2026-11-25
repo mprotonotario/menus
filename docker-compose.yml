@@ -11,6 +11,8 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - CRON_SECRET=cron_secret_maria_bonita_2026
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
 
   billing-cron:
     image: node:20-alpine
@@ -25,6 +27,8 @@ services:
       - TZ=America/Cancun
       - MENUS_APP_URL=http://menus-app:3000
       - CRON_SECRET=cron_secret_maria_bonita_2026
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
       - RUN_AT_HOUR_CANCUN=9
       - RUN_AT_MINUTE_CANCUN=0
     command: ["node", "scripts/cron-daemon.js"]
