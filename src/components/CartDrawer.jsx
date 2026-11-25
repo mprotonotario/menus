@@ -85,23 +85,23 @@ export default function CartDrawer() {
 
     const brandName = BUSINESS_DATA.brand?.name || 'Cafetería María Bonita';
 
-    let msg = `¡Hola! 👋 Me gustaría hacer un pedido en *${brandName}*:\n\n`;
-    msg += `👤 *Nombre:* ${customerName.trim()}\n`;
+    let msg = `¡Hola! Me gustaría hacer un pedido en *${brandName}*:\n\n`;
+    msg += `*Nombre del cliente:* ${customerName.trim()}\n`;
 
     if (orderType === 'delivery') {
-      msg += `🛵 *Tipo de entrega:* A domicilio\n`;
-      msg += `📍 *Dirección:* ${deliveryAddress.trim()}\n`;
+      msg += `*Tipo de entrega:* A domicilio\n`;
+      msg += `*Dirección de entrega:* ${deliveryAddress.trim()}\n`;
       if (deliveryNotes.trim()) {
-        msg += `🧭 *Referencias:* ${deliveryNotes.trim()}\n`;
+        msg += `*Referencias:* ${deliveryNotes.trim()}\n`;
       }
     } else {
-      msg += `🛍️ *Tipo de entrega:* Paso a buscar al establecimiento (recoger en barra)\n`;
+      msg += `*Tipo de entrega:* Paso a buscar al establecimiento (recoger en barra)\n`;
     }
 
-    msg += `\n📋 *Mi pedido:*\n`;
+    msg += `\n*Detalle del pedido:*\n`;
 
     cart.forEach((item) => {
-      msg += `• *${item.quantity}x ${item.name}* — ${formatMoney(
+      msg += `- *${item.quantity}x ${item.name}* : ${formatMoney(
         (item.finalPrice || item.price) * item.quantity
       )}\n`;
 
@@ -116,15 +116,15 @@ export default function CartDrawer() {
         }
       });
       if (optionsLines.length > 0) {
-        msg += `   ↳ _${optionsLines.join(' | ')}_\n`;
+        msg += `   > _${optionsLines.join(' | ')}_\n`;
       }
       if (item.notes) {
-        msg += `   ↳ _Nota: ${item.notes}_\n`;
+        msg += `   > _Nota: ${item.notes}_\n`;
       }
     });
 
-    msg += `\n💰 *Total estimado:* ${formatMoney(cartSubtotal)} MXN\n\n`;
-    msg += `¿Me podrían confirmar si tienen todo disponible y el tiempo aproximado para tenerlo listo? ¡Muchas gracias! 😊`;
+    msg += `\n*Total a pagar:* ${formatMoney(cartSubtotal)} MXN\n\n`;
+    msg += `¿Me podrían confirmar si tienen todo disponible y el tiempo aproximado para tenerlo listo? ¡Muchas gracias!`;
 
     // Registrar pedido en el sistema contable de la plataforma
     try {
@@ -139,7 +139,7 @@ export default function CartDrawer() {
     }
 
     const encoded = encodeURIComponent(msg);
-    window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encoded}`, '_blank');
   };
 
   return (
