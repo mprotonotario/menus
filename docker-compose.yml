@@ -8,7 +8,11 @@ services:
     ports:
       - "3003:3000"
     volumes:
+      - ./src:/app/src
+      - ./public:/app/public
       - ./data:/app/data
+      - ./next.config.js:/app/next.config.js
+    command: ["sh", "-c", "npm run build && npm start"]
     env_file:
       - .env
     environment:
