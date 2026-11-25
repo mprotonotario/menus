@@ -46,6 +46,8 @@ export default function AdminBillingPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentSuccessReceipt, setPaymentSuccessReceipt] = useState(null);
   const [selectedReceiptForModal, setSelectedReceiptForModal] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [feedbackToast, setFeedbackToast] = useState(null);
 
   // Formulario de tarjeta simulado de Stripe
   const [cardName, setCardName] = useState('Miguel Protonotario');
@@ -91,62 +93,167 @@ export default function AdminBillingPage() {
     setSubStatus(evaluateBillingStatus());
   };
 
-  const handleRenewCycle = async () => {
-    try {
-      const res = await fetch('/api/billing/renew', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: billingConfig.ownerPin, monthsToAdd: 1 }),
-      }).then((r) => r.json());
-
-      if (res.success) {
-        renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
-        alert(`✅ ${res.message}`);
-        await refreshData();
-      } else {
-        alert(`⚠️ ${res.error || res.message}`);
-      }
-    } catch (err) {
-      const res = renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
-      alert(res.message);
-      await refreshData();
-    }
+  const showFeedbackToast = (type, title, message) => {
+    setFeedbackToast({ type, title, message });
+    setTimeout(() => {
+      setFeedbackToast(null);
+    }, 4500);
   };
 
-  const handleToggleSuspension = async () => {
+  const handleRenewCycle = () => {
+    setConfirmModal({
+      icon: '🔄',
+      iconBg: '#dcfce7',
+      iconColor: '#16a34a',
+      iconBorder: '#bbf7d0',
+      iconShadow: 'rgba(22, 163, 74, 0.25)',
+      badge: 'Extensión de Ciclo (+30 Días)',
+      badgeBg: '#dcfce7',
+      badgeColor: '#15803d',
+      title: '¿Renovar Ciclo de Facturación?',
+      message: 'Se sumará 1 mes a la fecha de corte actual y se reactivará la plataforma si se encontraba en modo pausa.',
+      points: [
+        'Se registrará el pago mensual de la plataforma.',
+        'La nueva fecha de corte se extenderá 30 días automáticamente.',
+        'Se mantendrán todos los pedidos y el historial intactos.',
+      ],
+      bulletColor: '#16a34a',
+      confirmText: 'Confirmar Renovación (+30 Días)',
+      confirmBg: '#15803d',
+      confirmShadow: 'rgba(21, 128, 61, 0.35)',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isProcessing: true }));
+        try {
+          const res = await fetch('/api/billing/renew', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: billingConfig.ownerPin, monthsToAdd: 1 }),
+          }).then((r) => r.json());
+
+          if (res.success) {
+            renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
+            await refreshData();
+            setConfirmModal(null);
+            showFeedbackToast('success', '¡Ciclo Renovado!', res.message);
+          } else {
+            setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
+            showFeedbackToast('error', 'Error en renovación', res.error || res.message);
+          }
+        } catch (err) {
+          setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
+          showFeedbackToast('error', 'Error de conexión', err.message);
+        }
+      },
+    });
+  };
+
+  const handleToggleSuspension = () => {
     const currentlySuspended = Boolean(subStatus?.isSuspended);
-    const confirmMsg = currentlySuspended
-      ? '¿Deseas REACTIVAR la plataforma y habilitar los pedidos por WhatsApp nuevamente?'
-      : '¿Deseas PAUSAR la plataforma del restaurante? (El menú seguirá visible en modo solo consulta pero no podrán enviar pedidos a WhatsApp)';
-    if (!window.confirm(confirmMsg)) return;
 
-    try {
-      const res = await fetch('/api/billing/pause', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pin: billingConfig.ownerPin,
-          suspend: !currentlySuspended,
-        }),
-      }).then((r) => r.json());
+    if (currentlySuspended) {
+      // Modal Atractivo para REACTIVAR la plataforma
+      setConfirmModal({
+        icon: '▶️',
+        iconBg: '#dcfce7',
+        iconColor: '#16a34a',
+        iconBorder: '#bbf7d0',
+        iconShadow: 'rgba(22, 163, 74, 0.25)',
+        badge: 'Habilitar Servicio Completo',
+        badgeBg: '#dcfce7',
+        badgeColor: '#15803d',
+        title: '¿Reactivar Pedidos de la Plataforma?',
+        message: 'La plataforma volverá a aceptar pedidos por WhatsApp y el restaurante operará con total normalidad.',
+        points: [
+          'El botón de pedidos por WhatsApp volverá a estar habilitado en la comanda del cliente.',
+          'Se removerá el aviso de menú solo consulta.',
+          'Se sincroniza de inmediato en vivo sin necesidad de reiniciar el servidor.',
+        ],
+        bulletColor: '#16a34a',
+        confirmText: 'Sí, Reactivar Plataforma',
+        confirmBg: '#15803d',
+        confirmShadow: 'rgba(21, 128, 61, 0.35)',
+        onConfirm: async () => {
+          setConfirmModal((prev) => ({ ...prev, isProcessing: true }));
+          try {
+            const res = await fetch('/api/billing/pause', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pin: billingConfig.ownerPin,
+                suspend: false,
+              }),
+            }).then((r) => r.json());
 
-      if (res.success) {
-        setPlatformSuspension({
-          pin: billingConfig.ownerPin,
-          suspend: !currentlySuspended,
-        });
-        alert(res.message);
-        await refreshData();
-      } else {
-        alert(`⚠️ Error: ${res.error || 'No se pudo actualizar el estado'}`);
-      }
-    } catch (err) {
-      const res = setPlatformSuspension({
-        pin: billingConfig.ownerPin,
-        suspend: !currentlySuspended,
+            if (res.success) {
+              setPlatformSuspension({
+                pin: billingConfig.ownerPin,
+                suspend: false,
+              });
+              await refreshData();
+              setConfirmModal(null);
+              showFeedbackToast('success', '¡Plataforma Reactivada!', res.message);
+            } else {
+              setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
+              showFeedbackToast('error', 'Error al reactivar', res.error || 'No se pudo actualizar el estado.');
+            }
+          } catch (err) {
+            setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
+            showFeedbackToast('error', 'Error de conexión', err.message);
+          }
+        },
       });
-      alert(res.message);
-      await refreshData();
+    } else {
+      // Modal Atractivo para PAUSAR la plataforma
+      setConfirmModal({
+        icon: '🛑',
+        iconBg: '#fee2e2',
+        iconColor: '#dc2626',
+        iconBorder: '#fecaca',
+        iconShadow: 'rgba(220, 38, 38, 0.25)',
+        badge: 'Falta de Pago / Suspensión Manual',
+        badgeBg: '#fee2e2',
+        badgeColor: '#991b1b',
+        title: '¿Pausar la Plataforma del Restaurante?',
+        message: 'El menú digital cambiará al modo de solo consulta. Los clientes no podrán enviar pedidos a WhatsApp.',
+        points: [
+          'El menú completo, precios y fotografías seguirán 100% visibles para los clientes.',
+          'El botón de WhatsApp se bloqueará y se mostrará un aviso neutro para ordenar directamente en el establecimiento.',
+          'Podrás reactivar la plataforma en cualquier momento con un solo clic.',
+        ],
+        bulletColor: '#dc2626',
+        confirmText: 'Sí, Pausar Plataforma',
+        confirmBg: '#dc2626',
+        confirmShadow: 'rgba(220, 38, 38, 0.35)',
+        onConfirm: async () => {
+          setConfirmModal((prev) => ({ ...prev, isProcessing: true }));
+          try {
+            const res = await fetch('/api/billing/pause', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                pin: billingConfig.ownerPin,
+                suspend: true,
+              }),
+            }).then((r) => r.json());
+
+            if (res.success) {
+              setPlatformSuspension({
+                pin: billingConfig.ownerPin,
+                suspend: true,
+              });
+              await refreshData();
+              setConfirmModal(null);
+              showFeedbackToast('success', 'Plataforma Pausada', res.message);
+            } else {
+              setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
+              showFeedbackToast('error', 'Error al pausar', res.error || 'No se pudo actualizar el estado.');
+            }
+          } catch (err) {
+            setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
+            showFeedbackToast('error', 'Error de conexión', err.message);
+          }
+        },
+      });
     }
   };
 
@@ -986,6 +1093,259 @@ export default function AdminBillingPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Ventana Atractiva de Confirmación para Pausar / Reactivar / Renovar */}
+      {confirmModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(23, 14, 8, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1.25rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => !confirmModal.isProcessing && setConfirmModal(null)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '24px',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 25px 70px rgba(0,0,0,0.35)',
+              overflow: 'hidden',
+              border: '1px solid rgba(194, 84, 40, 0.15)',
+              textAlign: 'center',
+              padding: '2.25rem 2rem 1.75rem',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Ícono llamativo con círculo sombreado */}
+            <div
+              style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                background: confirmModal.iconBg || '#fef2f2',
+                color: confirmModal.iconColor || '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.1rem',
+                margin: '0 auto 1.25rem',
+                boxShadow: `0 8px 24px ${confirmModal.iconShadow || 'rgba(220, 38, 38, 0.25)'}`,
+                border: `2px solid ${confirmModal.iconBorder || '#fecaca'}`,
+              }}
+            >
+              {confirmModal.icon}
+            </div>
+
+            {/* Badge de Categoría */}
+            {confirmModal.badge && (
+              <span
+                style={{
+                  display: 'inline-block',
+                  background: confirmModal.badgeBg || '#fee2e2',
+                  color: confirmModal.badgeColor || '#991b1b',
+                  fontSize: '0.725rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  padding: '0.3rem 0.85rem',
+                  borderRadius: '9999px',
+                  marginBottom: '0.75rem',
+                }}
+              >
+                {confirmModal.badge}
+              </span>
+            )}
+
+            {/* Título Principal */}
+            <h3
+              style={{
+                fontFamily: 'var(--font-serif, "Playfair Display", Georgia, serif)',
+                fontSize: '1.55rem',
+                color: '#27170e',
+                margin: '0 0 0.5rem 0',
+                fontWeight: 700,
+                lineHeight: 1.25,
+              }}
+            >
+              {confirmModal.title}
+            </h3>
+
+            {/* Mensaje descriptivo */}
+            <p
+              style={{
+                color: '#6b7280',
+                fontSize: '0.9rem',
+                lineHeight: 1.5,
+                margin: '0 0 1.25rem 0',
+              }}
+            >
+              {confirmModal.message}
+            </p>
+
+            {/* Puntos de impacto inmediato */}
+            {confirmModal.points && confirmModal.points.length > 0 && (
+              <div
+                style={{
+                  background: '#fbf9f6',
+                  border: '1px solid #ebd9c5',
+                  borderRadius: '14px',
+                  padding: '1rem 1.2rem',
+                  textAlign: 'left',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#8c5936',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  Efecto inmediato en la plataforma:
+                </div>
+                {confirmModal.points.map((pt, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.5rem',
+                      fontSize: '0.825rem',
+                      color: '#4a3b32',
+                      marginBottom: idx === confirmModal.points.length - 1 ? 0 : '0.45rem',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <span style={{ color: confirmModal.bulletColor || '#dc2626', fontWeight: 'bold' }}>•</span>
+                    <span>{pt}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Botones de Acción */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                justifyContent: 'center',
+              }}
+            >
+              <button
+                type="button"
+                disabled={confirmModal.isProcessing}
+                onClick={() => setConfirmModal(null)}
+                style={{
+                  flex: 1,
+                  background: '#f3f4f6',
+                  color: '#4b5563',
+                  border: '1px solid #e5e7eb',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '12px',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: confirmModal.isProcessing ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={confirmModal.isProcessing}
+                onClick={confirmModal.onConfirm}
+                style={{
+                  flex: 1.4,
+                  background: confirmModal.confirmBg || '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '12px',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  cursor: confirmModal.isProcessing ? 'not-allowed' : 'pointer',
+                  boxShadow: `0 4px 14px ${confirmModal.confirmShadow || 'rgba(220, 38, 38, 0.35)'}`,
+                  opacity: confirmModal.isProcessing ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {confirmModal.isProcessing ? (
+                  <>
+                    <span>⏳</span>
+                    <span>Guardando cambios...</span>
+                  </>
+                ) : (
+                  confirmModal.confirmText
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notificación Toast Atractiva */}
+      {feedbackToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 1050,
+            background: feedbackToast.type === 'success' ? '#15803d' : '#dc2626',
+            color: '#ffffff',
+            padding: '1rem 1.4rem',
+            borderRadius: '14px',
+            boxShadow: '0 12px 30px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.85rem',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            maxWidth: '430px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          <span style={{ fontSize: '1.4rem' }}>
+            {feedbackToast.type === 'success' ? '✅' : '⚠️'}
+          </span>
+          <div style={{ flex: 1 }}>
+            <strong style={{ display: 'block', fontSize: '0.95rem' }}>{feedbackToast.title}</strong>
+            <span style={{ fontSize: '0.825rem', opacity: 0.92 }}>{feedbackToast.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedbackToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              opacity: 0.8,
+              padding: '0.2rem',
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
