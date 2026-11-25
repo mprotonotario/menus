@@ -1803,7 +1803,7 @@ const BUSINESS_DATA = {
   // Configuración de Facturación y Comisión de la Plataforma (Exclusivo para el Dueño del Restaurante)
   platformBilling: {
     commissionPerOrder: 3, // $3.00 MXN cobrados por cada comanda generada desde la plataforma
-    monthlyFee: 249, // Cuota fija mensual de mantenimiento ($249.00 MXN)
+    monthlyFee: 300, // Cuota fija mensual de mantenimiento ($249.00 MXN)
     currency: 'MXN',
     cycleDays: 30, // Periodo estándar de facturación (mensual)
     graceDays: 5, // Días de gracia tras vencimiento antes de pasar a modo solo lectura
@@ -1823,9 +1823,10 @@ const BUSINESS_DATA = {
     paymentInfo: {
       bank: 'BBVA México',
       clabe: '012180001234567890',
-      beneficiary: 'RedaySoft Soluciones Digitales S.A.S.',
+      beneficiary: 'RedaySoft Soluciones Digitales',
       reference: 'MARIA-BONITA-01',
-      paymentLink: 'https://buy.stripe.com/test_maria_bonita_mensualidad'
+      paymentLink: 'https://buy.stripe.com/test_maria_bonita_mensualidad',
+      enablePaymentLink: false // Bandera: false deshabilita temporalmente el enlace de pago con tarjeta (solo SPEI)
     }
   }
 };

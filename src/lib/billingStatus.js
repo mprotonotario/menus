@@ -229,7 +229,7 @@ export function generateTelegramAdminNotification(statusData = null, directWhats
     ],
   ];
 
-  if (payment.paymentLink) {
+  if (payment.enablePaymentLink === true && payment.paymentLink) {
     inlineKeyboard.push([
       {
         text: '💳 Ver Pasarela Stripe',
@@ -291,8 +291,9 @@ export async function sendTelegramAdminNotification({ botToken, chatId, text, in
 export function generateWhatsappReminderMessage(statusData = null) {
   const data = statusData || evaluateBillingStatus();
   const payment = data.paymentInfo || {};
+  const isOnlinePaymentEnabled = payment.enablePaymentLink === true && Boolean(payment.paymentLink);
 
-  return (
+  let message =
     `*RECORDATORIO DE FACTURACIÓN — ${data.companyName || 'REDAYSOFT'}*\n` +
     `--------------------------------------------------\n` +
     `Hola, estimado/a administrador de *${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}*.\n\n` +
@@ -301,13 +302,21 @@ export function generateWhatsappReminderMessage(statusData = null) {
     `⏳ *Días restantes:* ${data.daysUntilDue} días\n` +
     `🛡️ *Periodo de Gracia:* ${data.graceDays} días adicionales tras vencimiento.\n\n` +
     `*DATOS PARA TRANSFERENCIA SPEI:*\n` +
-    `🏦 *Banco:* ${payment.bank || 'BBVA'}\n` +
+    `🏦 *Banco:* ${payment.bank || 'BBVA México'}\n` +
     `🔢 *CLABE Interbancaria:* \`${payment.clabe || '012180001234567890'}\`\n` +
-    `👤 *Beneficiario:* ${payment.beneficiary || 'RedaySoft Soluciones'}\n` +
-    `📌 *Concepto / Referencia:* \`${payment.reference || 'MARIA-BONITA-01'}\`\n\n` +
-    `💳 *Pago Rápido en Línea:* ${payment.paymentLink || 'https://buy.stripe.com/test'}\n\n` +
-    `_Una vez realizada tu transferencia, tu servicio se mantendrá activo sin interrupciones. ¡Muchas gracias por tu preferencia!_`
-  );
+    `👤 *Beneficiario:* ${payment.beneficiary || 'RedaySoft Soluciones Digitales'}\n` +
+    `📌 *Concepto / Referencia:* \`${payment.reference || 'MARIA-BONITA-01'}\`\n\n`;
+
+  if (isOnlinePaymentEnabled) {
+    message += `💳 *Pago Rápido en Línea:* ${payment.paymentLink}\n\n`;
+  }
+
+  message +=
+    `📸 *Confirmación de Pago:*\n` +
+    `Una vez realizada tu transferencia, por favor *comparte tu comprobante o captura de pago por este mismo medio* para registrarlo y mantener tu servicio activo sin interrupciones.\n\n` +
+    `_¡Agradecemos mucho tu confianza y preferencia!_`;
+
+  return message;
 }
 
 /**

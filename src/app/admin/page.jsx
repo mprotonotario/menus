@@ -413,7 +413,7 @@ export default function AdminBillingPage() {
                     WhatsApp del dueño: +{subStatus.billingPhone}
                   </div>
                 </div>
-                {subStatus.paymentInfo?.paymentLink && (
+                {subStatus.paymentInfo?.enablePaymentLink && subStatus.paymentInfo?.paymentLink ? (
                   <a
                     href={subStatus.paymentInfo.paymentLink}
                     target="_blank"
@@ -433,6 +433,21 @@ export default function AdminBillingPage() {
                   >
                     Abrir Pasarela de Pago ↗
                   </a>
+                ) : (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      background: '#e2e8f0',
+                      color: '#334155',
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                    }}
+                  >
+                    🏦 Cobro exclusivo vía Transferencia SPEI
+                  </div>
                 )}
               </div>
             </div>

@@ -1823,9 +1823,10 @@ const BUSINESS_DATA = {
     paymentInfo: {
       bank: 'BBVA México',
       clabe: '012180001234567890',
-      beneficiary: 'RedaySoft Soluciones Digitales S.A.S.',
+      beneficiary: 'RedaySoft Soluciones Digitales',
       reference: 'MARIA-BONITA-01',
-      paymentLink: 'https://buy.stripe.com/test_maria_bonita_mensualidad'
+      paymentLink: 'https://buy.stripe.com/test_maria_bonita_mensualidad',
+      enablePaymentLink: false // Bandera: false deshabilita temporalmente el enlace de pago con tarjeta (solo SPEI)
     }
   }
 };
