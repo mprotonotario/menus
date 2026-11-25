@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { BUSINESS_DATA } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 export default function AboutSection() {
+  const { businessData: BUSINESS_DATA } = useMenuData();
   const stats = BUSINESS_DATA.stats || [];
 
   return (

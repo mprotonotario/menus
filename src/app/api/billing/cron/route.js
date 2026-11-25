@@ -11,9 +11,9 @@ import {
 
 function getLiveFileSuspended() {
   try {
-    const controlPath = path.join(process.cwd(), 'data', 'billing-control.json');
-    if (fs.existsSync(controlPath)) {
-      const raw = fs.readFileSync(controlPath, 'utf8');
+    const billingPath = path.join(process.cwd(), 'data', 'billing.json');
+    if (fs.existsSync(billingPath)) {
+      const raw = fs.readFileSync(billingPath, 'utf8');
       const json = JSON.parse(raw);
       if (typeof json.isSuspended === 'boolean') return json.isSuspended;
     }

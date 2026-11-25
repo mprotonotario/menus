@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useCart } from '../context/CartContext';
-import { BUSINESS_DATA } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 const NAV_ITEMS = [
   { id: 'inicio', label: 'Inicio', icon: '☕' },
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const { totalItemsCount, setIsCartOpen, liveStatus } = useCart();
+  const { businessData: BUSINESS_DATA } = useMenuData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('inicio');
   const [isScrolled, setIsScrolled] = useState(false);

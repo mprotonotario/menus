@@ -1,0 +1,43 @@
+{
+  "brand": {
+    "name": "Cafetería María Bonita",
+    "title": "María Bonita",
+    "subtitle": "Cafetería & Panadería",
+    "footerSubtitle": "Sabor de hogar"
+  },
+  "hero": {
+    "badgeIcon": "✨",
+    "badgeText": "Alta Cocina Matutina • Desayunos de Autor",
+    "titleHtml": "Sabor de hogar, <br>aroma a <span class=\"highlight\">recién molido</span>.",
+    "title": "Sabor de hogar, aroma a recién molido.",
+    "subtitle": "Chilaquiles mestizos con arrachera al carbón, panadería artesanal de masa madre horneada al alba y café de altura 100% mexicano para comenzar tu mañana de manera inolvidable.",
+    "btnPrimaryText": "Explorar Menú Completo",
+    "btnSecondaryText": "Especialidades del Día",
+    "luxuryPills": [
+      {
+        "icon": "☕",
+        "title": "Café de Finca",
+        "subtitle": "Chiapas & Oaxaca"
+      },
+      {
+        "icon": "🥐",
+        "title": "Masa Madre",
+        "subtitle": "Fermentada 24 horas"
+      },
+      {
+        "icon": "🥚",
+        "title": "Libre Pastoreo",
+        "subtitle": "100% Orgánico"
+      },
+      {
+        "icon": "⭐",
+        "title": "4.9★ Calificación",
+        "subtitle": "+3,800 comensales"
+      }
+    ]
+  },
+  "name": "Cafetería María Bonita",
+  "tradeName": "María Bonita Cafetería & Panadería",
+  "slogan": "Sabor de hogar, aroma a recién molido",
+  "subheadline": "Chilaquiles mestizos con arrachera al carbón, panadería artesanal de masa madre horneada al alba y café de altura 100% mexicano para comenzar tu mañana de manera inolvidable."
+}

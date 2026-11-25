@@ -2,14 +2,16 @@
 
 import React from 'react';
 import { useCart } from '../context/CartContext';
-import { BUSINESS_DATA, isScheduleForDay } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
+import { isScheduleForDay } from '../data/menuData';
 
 export default function LocationSection() {
+  const { businessData: BUSINESS_DATA } = useMenuData();
   const brand = BUSINESS_DATA.brand || {};
   const location = BUSINESS_DATA.location || {};
   const contact = BUSINESS_DATA.contact || {};
   const hours = BUSINESS_DATA.hours || [];
-  const mapData = BUSINESS_DATA.map || {};
+  const mapData = BUSINESS_DATA.mapPin || BUSINESS_DATA.map || {};
 
   const currentDayOfWeek = new Date().getDay();
 

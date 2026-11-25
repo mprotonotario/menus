@@ -1,4 +1,5 @@
 import './globals.css';
+import { MenuDataProvider } from '../context/MenuDataContext';
 import { CartProvider } from '../context/CartContext';
 import { BUSINESS_DATA } from '../data/menuData';
 
@@ -30,9 +31,11 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <MenuDataProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </MenuDataProvider>
       </body>
     </html>
   );

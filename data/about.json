@@ -1,0 +1,24 @@
+{
+  "stats": [
+    {
+      "number": "+12",
+      "label": "Años de Tradición",
+      "desc": "Conservando las recetas de la abuela"
+    },
+    {
+      "number": "100%",
+      "label": "Grano Mexicano",
+      "desc": "Chiapas, Veracruz y Oaxaca"
+    },
+    {
+      "number": "+45",
+      "label": "Recetas Propias",
+      "desc": "Bebidas y panadería de autor"
+    },
+    {
+      "number": "4.9★",
+      "label": "Calificación Google",
+      "desc": "Más de 3,800 reseñas felices"
+    }
+  ]
+}

@@ -1,11 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useMenuData } from './MenuDataContext';
 import { BUSINESS_DATA, computeLiveBusinessStatus, formatMoney } from '../data/menuData';
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+  const { businessData } = useMenuData();
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedDish, setSelectedDish] = useState(null);
@@ -24,12 +26,12 @@ export function CartProvider({ children }) {
     }
 
     const updateStatus = () => {
-      setLiveStatus(computeLiveBusinessStatus(BUSINESS_DATA));
+      setLiveStatus(computeLiveBusinessStatus(businessData?.hours || BUSINESS_DATA.hours));
     };
     updateStatus();
     const timer = setInterval(updateStatus, 60000);
     return () => clearInterval(timer);
-  }, []);
+  }, [businessData]);
 
   // Sync to localStorage
   useEffect(() => {

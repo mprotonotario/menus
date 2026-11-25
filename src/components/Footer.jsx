@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { BUSINESS_DATA } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 export default function Footer() {
+  const { businessData: BUSINESS_DATA } = useMenuData();
   const brand = BUSINESS_DATA.brand || {};
   const socials = BUSINESS_DATA.socials || {};
 

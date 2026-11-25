@@ -7,23 +7,21 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    let fileSuspended = null;
-    const controlPath = path.join(process.cwd(), 'data', 'billing-control.json');
-    if (fs.existsSync(controlPath)) {
+    let fileBilling = null;
+    const billingPath = path.join(process.cwd(), 'data', 'billing.json');
+    if (fs.existsSync(billingPath)) {
       try {
-        const raw = fs.readFileSync(controlPath, 'utf8');
+        const raw = fs.readFileSync(billingPath, 'utf8');
         const json = JSON.parse(raw);
-        if (typeof json.isSuspended === 'boolean') {
-          fileSuspended = json.isSuspended;
+        if (json && typeof json === 'object') {
+          fileBilling = json;
         }
       } catch (e) {
-        console.warn('Error reading billing-control.json:', e);
+        console.warn('Error reading billing.json:', e);
       }
     }
 
-    const billingStatus = evaluateBillingStatus(
-      fileSuspended !== null ? { isSuspended: fileSuspended } : null
-    );
+    const billingStatus = evaluateBillingStatus(fileBilling);
 
     return NextResponse.json({ success: true, billingStatus }, { status: 200 });
   } catch (error) {

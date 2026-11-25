@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { useCart } from '../context/CartContext';
-import { BUSINESS_DATA, MENU_ITEMS } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 export default function Hero() {
   const { setSelectedDish } = useCart();
+  const { businessData: BUSINESS_DATA, products: MENU_ITEMS } = useMenuData();
   const heroData = BUSINESS_DATA.hero || {};
 
   // Find featured 3D dish from menuData

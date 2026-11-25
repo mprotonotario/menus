@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { useCart } from '../context/CartContext';
-import { MENU_CATEGORIES } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 export default function DishCard({ item }) {
   const { setSelectedDish, formatMoney } = useCart();
+  const { categories: MENU_CATEGORIES } = useMenuData();
 
   const isFavorite =
     item.badge?.toUpperCase() === 'FAVORITO' ||

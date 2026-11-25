@@ -1,0 +1,28 @@
+{
+  "commissionPerOrder": 3,
+  "monthlyFee": 300,
+  "currency": "MXN",
+  "isSuspended": false,
+  "cycleDays": 30,
+  "graceDays": 5,
+  "reminderDaysBefore": 3,
+  "nextBillingDate": "2026-11-28",
+  "billingPhone": "529831226847",
+  "whatsappRecipient": "529831226847",
+  "ownerPin": "2026",
+  "stripePublishableKey": "pk_test_TYooMQauvdEDq54NiTphI7jx",
+  "companyName": "RedaySoft Software & Menús Digitales",
+  "supportEmail": "facturacion@redaysoft.com",
+  "telegramAdmin": {
+    "botToken": "",
+    "chatId": ""
+  },
+  "paymentInfo": {
+    "bank": "BBVA México",
+    "clabe": "012180001234567890",
+    "beneficiary": "RedaySoft Soluciones Digitales",
+    "reference": "MARIA-BONITA-01",
+    "paymentLink": "https://buy.stripe.com/test_maria_bonita_mensualidad",
+    "enablePaymentLink": false
+  }
+}

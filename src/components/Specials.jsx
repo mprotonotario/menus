@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { useCart } from '../context/CartContext';
-import { MENU_ITEMS } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 export default function Specials() {
   const { setSelectedDish, formatMoney } = useCart();
+  const { products: MENU_ITEMS } = useMenuData();
 
   // Seleccionamos platillos insignia: cal-1, des-1, pan-1
   const specialIds = ['cal-1', 'des-1', 'pan-1'];

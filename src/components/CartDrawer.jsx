@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { BUSINESS_DATA } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 import { recordNewOrder } from '../utils/orderStorage';
 import { evaluateBillingStatus } from '../lib/billingStatus';
 
 export default function CartDrawer() {
+  const { businessData: BUSINESS_DATA } = useMenuData();
   const {
     cart,
     isCartOpen,

@@ -1,0 +1,17 @@
+{
+  "contact": {
+    "title": "Atención Directa & Pedidos",
+    "phoneDisplay": "+52 983 122 6847",
+    "phoneCall": "+529831226847",
+    "whatsappNumber": "529831226847",
+    "whatsappMessageNotice": "Escríbenos a WhatsApp para apartar tu mesa o recoger tu comanda sin filas:",
+    "whatsappButtonText": "Escribir por WhatsApp",
+    "whatsappDefaultMessage": "Hola Cafetería María Bonita en Chetumal, quisiera consultar sobre disponibilidad y pedidos...",
+    "email": "hola@cafeteriamariabonita.com"
+  },
+  "socials": {
+    "instagram": "https://instagram.com/cafeteriamariabonita",
+    "facebook": "https://facebook.com/cafeteriamariabonita",
+    "tiktok": "https://tiktok.com/@cafeteriamariabonita"
+  }
+}

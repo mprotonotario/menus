@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useMenuData } from '../../context/MenuDataContext';
 import { BUSINESS_DATA, formatMoney } from '../../data/menuData';
 import {
   getStoredOrders,
@@ -18,7 +19,8 @@ import {
 } from '../../lib/billingStatus';
 
 export default function AdminBillingPage() {
-  const billingConfig = BUSINESS_DATA.platformBilling || {
+  const { businessData } = useMenuData();
+  const billingConfig = businessData?.platformBilling || BUSINESS_DATA.platformBilling || {
     commissionPerOrder: 3,
     currency: 'MXN',
     cycleDays: 30,

@@ -1,0 +1,79 @@
+{
+  "location": {
+    "sectionPretitle": "— NUESTRA UBICACIÓN",
+    "headingLine1": "Ven a disfrutar",
+    "headingLine2": "un momento bonito.",
+    "leadText": "María Bonita te espera en el Centro de Chetumal, Quintana Roo.",
+    "descText": "Visítanos, conoce nuestro espacio, descubre nuestros rincones y disfruta una taza de café en un ambiente cálido y lleno de encanto.",
+    "addressTitle": "Dirección",
+    "addressLine1": "Av. Álvaro Obregón #168, Col. Centro",
+    "addressLine2": "77000 Chetumal, Quintana Roo",
+    "address": "Av. Álvaro Obregón #168, Col. Centro, Chetumal, Quintana Roo.",
+    "reference": "A dos cuadras del Boulevard Bahía y Explanada de la Bandera",
+    "cityZone": "Chetumal, Q. Roo",
+    "fullPostalAddress": "Av. Álvaro Obregón #168, Col. Centro, C.P. 77000, Chetumal, Quintana Roo, México",
+    "hoursTitle": "Horario",
+    "contactTitle": "Pedidos y contacto",
+    "contactPrompt": "Escríbenos por WhatsApp para realizar tu pedido.",
+    "directionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Av.+Alvaro+Obregon+168,+Centro,+Chetumal,+Quintana+Roo",
+    "mapEmbedQuery": "Av. Álvaro Obregón 168, Centro, Chetumal, Quintana Roo",
+    "mapStoreBadge": {
+      "kicker": "TE ESPERAMOS EN",
+      "name": "María Bonita",
+      "desc": "Café · Historia · Experiencia"
+    }
+  },
+  "mapPin": {
+    "title": "María Bonita Cafetería",
+    "subtitle": "Álvaro Obregón #168 • Centro, Chetumal"
+  },
+  "hours": [
+    {
+      "days": "Lunes a Jueves",
+      "time": "06:00 am - 10:00 pm",
+      "open": "06:00",
+      "close": "22:00",
+      "dayIndices": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "days": "Viernes",
+      "time": "07:00 am - 11:00 pm",
+      "open": "07:00",
+      "close": "23:00",
+      "dayIndices": [
+        5
+      ]
+    },
+    {
+      "days": "Sábados",
+      "time": "08:00 am - 11:00 pm",
+      "open": "08:00",
+      "close": "23:00",
+      "dayIndices": [
+        6
+      ]
+    },
+    {
+      "days": "Domingos",
+      "time": "08:00 am - 09:30 pm",
+      "open": "08:00",
+      "close": "21:30",
+      "dayIndices": [
+        0
+      ]
+    }
+  ],
+  "scheduleStatus": {
+    "mode": "auto",
+    "openBadgePrefix": "Abierto Hoy:",
+    "closedBadgePrefix": "Cerrado Ahora"
+  },
+  "topNotice": {
+    "badgeText": "Abierto Hoy: 6:00 am - 10:00 pm"
+  }
+}

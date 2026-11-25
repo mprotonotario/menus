@@ -1,0 +1,62 @@
+[
+  {
+    "id": "todos",
+    "name": "Todos los Platillos",
+    "icon": "✨",
+    "description": "Explora nuestra carta completa de cocina tradicional, desayunos de autor, hamburguesas, jugos y café de especialidad."
+  },
+  {
+    "id": "huevos",
+    "name": "Huevos al Gusto",
+    "icon": "🍳",
+    "description": "Preparados al momento con huevos de libre pastoreo, acompañados de frijoles refritos con totopos y tortillas hechas a mano."
+  },
+  {
+    "id": "hamburguesas",
+    "name": "Hamburguesas & Sandwiches",
+    "icon": "🍔",
+    "description": "Carne 100% de res al carbón, bollos brioche horneados al alba en casa y papas gajo crujientes sazonadas."
+  },
+  {
+    "id": "jugos",
+    "name": "Jugos & Bebidas Naturales",
+    "icon": "🥤",
+    "description": "Fruta fresca seleccionada exprimida al momento en extractor frío, sin azúcares añadidos ni conservadores."
+  },
+  {
+    "id": "calientes",
+    "name": "Café (Caliente)",
+    "icon": "☕",
+    "description": "Granos de altura 100% mexicanos de Coatepec y Pluma Hidalgo, recién molidos y calibrados a la perfección."
+  },
+  {
+    "id": "frios",
+    "name": "Bebidas Frías & Frappés",
+    "icon": "🧊",
+    "description": "Frappés cremosos de autor con ingredientes mexicanos, cold brew reposado por 18 horas e infusiones frutales."
+  },
+  {
+    "id": "comidas",
+    "name": "Crepas & Antojos Salados",
+    "icon": "🥗",
+    "description": "Crepas saladas doradas a la mantequilla, chilaquiles mestizos con arrachera, molletes y antojitos tradicionales."
+  },
+  {
+    "id": "panaderia",
+    "name": "Panadería Artesanal & Waffles",
+    "icon": "🥐",
+    "description": "Masa madre horneada diariamente al alba, pan dulce tradicional con nata montada, pan francés brioche y waffles belgas."
+  },
+  {
+    "id": "postres",
+    "name": "Postres & Dulce Tradición",
+    "icon": "🍰",
+    "description": "Recetas artesanales de la casa: pasteles ultra humectados, flan napolitano al caramelo, cheesecakes de frutos silvestres y crepas dulces."
+  },
+  {
+    "id": "combos",
+    "name": "Combos & Paquetes",
+    "icon": "🎁",
+    "description": "Combinaciones completas para desayunar y merendar con café incluido y precio especial."
+  }
+]

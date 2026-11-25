@@ -14,23 +14,16 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: result.message }, { status: 401 });
     }
 
-    // Persistir en disco en data/billing-control.json
+    // Persistir directamente en data/billing.json
     try {
-      const controlDir = path.join(process.cwd(), 'data');
-      if (!fs.existsSync(controlDir)) fs.mkdirSync(controlDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(controlDir, 'billing-control.json'),
-        JSON.stringify(
-          {
-            isSuspended: Boolean(suspend),
-            lastUpdated: new Date().toISOString(),
-          },
-          null,
-          2
-        )
-      );
+      const billingPath = path.join(process.cwd(), 'data', 'billing.json');
+      if (fs.existsSync(billingPath)) {
+        const current = JSON.parse(fs.readFileSync(billingPath, 'utf8'));
+        current.isSuspended = Boolean(suspend);
+        fs.writeFileSync(billingPath, JSON.stringify(current, null, 2));
+      }
     } catch (fsErr) {
-      console.warn('Error al persistir billing-control.json:', fsErr);
+      console.warn('Error al actualizar billing.json:', fsErr);
     }
 
     const updatedStatus = evaluateBillingStatus({ isSuspended: Boolean(suspend) });

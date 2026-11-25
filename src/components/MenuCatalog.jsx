@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import DishCard from './DishCard';
-import { MENU_CATEGORIES, MENU_ITEMS } from '../data/menuData';
+import { useMenuData } from '../context/MenuDataContext';
 
 export default function MenuCatalog() {
+  const { categories: MENU_CATEGORIES, products: MENU_ITEMS } = useMenuData();
   const [activeCategory, setActiveCategory] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [secondaryFilter, setSecondaryFilter] = useState('all');
@@ -44,7 +45,7 @@ export default function MenuCatalog() {
       }
       return true;
     });
-  }, [activeCategory, searchQuery, secondaryFilter]);
+  }, [activeCategory, searchQuery, secondaryFilter, MENU_ITEMS]);
 
   // Group filtered dishes by category
   const groupedByCategory = useMemo(() => {
