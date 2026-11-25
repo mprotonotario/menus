@@ -103,8 +103,6 @@ export default function AdminBillingPage() {
     if (typeof window === 'undefined' || !receipt) return;
 
     const total = receipt.totalPaid || monthlyFee || 300;
-    const subtotal = total / 1.16;
-    const iva = total - subtotal;
     const dateFormatted = new Date(receipt.date || Date.now()).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
@@ -319,19 +317,19 @@ export default function AdminBillingPage() {
     <tr>
       <td style="vertical-align: middle;">
         <div class="brand-title">REDAYSOFT</div>
-        <div style="font-weight: 700; color: #27170e; font-size: 13px;">Soluciones Digitales S.A.S.</div>
-        <div class="brand-sub">Software Gastronómico • Menús Digitales Interactivos</div>
-        <div class="brand-sub">RFC: RSD210415AB3 • facturacion@redaysoft.com • Cancún / Chetumal, Q. Roo</div>
+        <div style="font-weight: 700; color: #27170e; font-size: 13px;">Soluciones Digitales</div>
+        <div class="brand-sub">Plataforma Cloud & Menús Digitales Interactivos</div>
+        <div class="brand-sub">Atención & Soporte: soporte@redaysoft.com • Cancún / Chetumal, Q. Roo</div>
       </td>
       <td style="vertical-align: middle; text-align: right;">
-        <div class="receipt-badge-title">COMPROBANTE OFICIAL DE PAGO</div>
+        <div class="receipt-badge-title">COMPROBANTE DE SUSCRIPCIÓN</div>
         <div class="receipt-meta-box">
           <div>Número de Recibo: <strong>#${receipt.id || 'REC-2026-001'}</strong></div>
-          <div>Folio de Operación: <strong>${receipt.folio || 'SPEI-8841-MB'}</strong></div>
+          <div>Referencia Operación: <strong>${receipt.folio || 'SPEI-8841-MB'}</strong></div>
           <div>Fecha de Emisión: <strong>${dateFormatted}</strong></div>
         </div>
         <div>
-          <span class="status-stamp">✓ ${receipt.status || 'PAGADO & LIQUIDADO'}</span>
+          <span class="status-stamp">✓ ${receipt.status || 'ACTIVO & PAGADO'}</span>
         </div>
       </td>
     </tr>
@@ -340,7 +338,7 @@ export default function AdminBillingPage() {
   <!-- Bloque Emisor / Receptor -->
   <div class="info-grid">
     <div class="info-col">
-      <div class="info-heading">DATOS DEL CLIENTE / SUSCRIPTOR</div>
+      <div class="info-heading">DATOS DEL ESTABLECIMIENTO / CLIENTE</div>
       <div class="info-line">Establecimiento: <strong>${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</strong></div>
       <div class="info-line">Razón Comercial: <strong>${BUSINESS_DATA.tradeName || 'María Bonita Cafetería & Panadería'}</strong></div>
       <div class="info-line">Dirección: <strong>${BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}</strong></div>
@@ -348,12 +346,12 @@ export default function AdminBillingPage() {
       <div class="info-line">Teléfono / WhatsApp: <strong>+${BUSINESS_DATA.contact?.whatsappRaw || '529831226847'}</strong></div>
     </div>
     <div class="info-col">
-      <div class="info-heading">DETALLES DE LA LIQUIDACIÓN</div>
-      <div class="info-line">Método de Pago: <strong>${receipt.paymentMethod || 'Transferencia Interbancaria SPEI (BBVA)'}</strong></div>
+      <div class="info-heading">DATOS DE LA LIQUIDACIÓN</div>
+      <div class="info-line">Modalidad de Pago: <strong>${receipt.paymentMethod || 'Transferencia Interbancaria SPEI (BBVA)'}</strong></div>
       <div class="info-line">Referencia Registrada: <strong>${receipt.reference || 'MARIA-BONITA-01'}</strong></div>
       <div class="info-line">Banco Receptor: <strong>BBVA México</strong></div>
       <div class="info-line">Cuenta CLABE: <strong>012180001234567890</strong></div>
-      <div class="info-line">Divisa: <strong>MXN (Pesos Mexicanos)</strong></div>
+      <div class="info-line">Moneda: <strong>MXN (Pesos Mexicanos)</strong></div>
     </div>
   </div>
 
@@ -379,8 +377,8 @@ export default function AdminBillingPage() {
             • <strong>Periodo de Cobertura:</strong> ${receipt.period || 'Membresía Mensual Activa (+30 Días de Servicio)'}.
           </div>
         </td>
-        <td style="text-align: right; font-weight: 600;">$${subtotal.toFixed(2)} MXN</td>
-        <td style="text-align: right; font-weight: 700; color: #111827;">$${subtotal.toFixed(2)} MXN</td>
+        <td style="text-align: right; font-weight: 600;">$${Number(total).toFixed(2)} MXN</td>
+        <td style="text-align: right; font-weight: 700; color: #111827;">$${Number(total).toFixed(2)} MXN</td>
       </tr>
     </tbody>
   </table>
@@ -394,40 +392,49 @@ export default function AdminBillingPage() {
       </div>
       <div class="spei-box">
         <strong>✓ Acreditación Bancaria Confirmada:</strong><br>
-        Pago mensual cubierto vía transferencia SPEI. Sin adeudos ni cobro de comisión por pedidos.
+        Pago mensual cubierto vía transferencia electrónica SPEI. Sin adeudos ni cobro de comisión por pedidos.
       </div>
     </div>
     <div class="totals-right">
       <table class="totals-table">
         <tr>
-          <td style="color: #4b5563;">Subtotal (Base Gravable):</td>
-          <td style="text-align: right; font-weight: 600;">$${subtotal.toFixed(2)} MXN</td>
+          <td style="color: #4b5563;">Cuota Mensual del Servicio:</td>
+          <td style="text-align: right; font-weight: 600;">$${Number(total).toFixed(2)} MXN</td>
         </tr>
         <tr>
-          <td style="color: #4b5563;">I.V.A. Trasladado (16%):</td>
-          <td style="text-align: right; font-weight: 600;">$${iva.toFixed(2)} MXN</td>
+          <td style="color: #4b5563;">Cargos extra por pedidos:</td>
+          <td style="text-align: right; font-weight: 600; color: #16a34a;">$0.00 MXN (Incluido)</td>
         </tr>
         <tr class="total-row">
-          <td>TOTAL PAGADO:</td>
+          <td>TOTAL CUBIERTO:</td>
           <td style="text-align: right;">$${Number(total).toFixed(2)} MXN</td>
         </tr>
       </table>
     </div>
   </div>
 
-  <!-- Sello Digital y Validación -->
-  <div class="digital-seal-box">
-    <div style="font-weight: 700; color: #374151; margin-bottom: 2px;">CADENA DE CERTIFICACIÓN DIGITAL REDAYSOFT:</div>
-    <div style="word-break: break-all; font-family: monospace; font-size: 8.5px; color: #6b7280;">
-      ||1.1|${receipt.id || 'REC-2026'}|${receipt.folio || 'SPEI-MB'}|${receipt.date || new Date().toISOString()}|300.00|MXN|SPEI|BBVA|012180001234567890|MARIA-BONITA-01|CAFETERIA MARIA BONITA|RSD210415AB3||
-    </div>
-    <div style="margin-top: 4px; font-weight: 600; color: #15803d;">
-      🔒 Comprobante digital verificado electrónicamente por RedaySoft Platforms. Válido como comprobante de pago de servicios.
+  <!-- Póliza de Continuidad y Garantía de Servicio (No fiscal, ejecutivo y profesional) -->
+  <div style="background: #fbf9f6; border: 1px solid #ebd9c5; border-radius: 8px; padding: 12px 14px; margin-top: 14px;">
+    <div style="display: table; width: 100%;">
+      <div style="display: table-cell; width: 68%; vertical-align: middle;">
+        <div style="font-weight: 800; color: #27170e; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">
+          🛡️ Póliza de Continuidad y Soporte de Plataforma
+        </div>
+        <div style="font-size: 10.5px; color: #4b5563; line-height: 1.4;">
+          El Menú Digital interactivo y el canal de recepción de comandas por WhatsApp cuentan con disponibilidad garantizada 24/7 y respaldo cloud durante el periodo cubierto.
+        </div>
+      </div>
+      <div style="display: table-cell; width: 32%; text-align: right; vertical-align: middle;">
+        <div style="display: inline-block; background: #ffffff; border: 1px solid #d1c7bc; border-radius: 6px; padding: 6px 10px; text-align: center;">
+          <div style="font-size: 8px; color: #8c5936; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">CÓDIGO DE ACTIVACIÓN</div>
+          <div style="font-family: monospace; font-size: 11px; font-weight: 700; color: #15803d; letter-spacing: 0.5px;">RS-ACT-${receipt.id || '2026-001'}</div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="footer-note">
-    Este comprobante acredita la vigencia del servicio de Menú Digital y recepción de pedidos. Para facturación fiscal CFDI con datos personalizados, escribe a facturacion@redaysoft.com.
+    Gracias por tu preferencia. Este comprobante avala la cobertura mensual del servicio de Menú Digital contratado para <strong>${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</strong>. Soporte técnico y atención personalizada: <strong>soporte@redaysoft.com</strong> • WhatsApp: <strong>+52 983 122 6847</strong>.
   </div>
 </body>
 </html>
@@ -1354,12 +1361,12 @@ export default function AdminBillingPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.88rem' }}>
-                <span style={{ color: '#6b5c52' }}>Subtotal (Base gravable):</span>
-                <strong>{formatMoney((selectedReceiptForModal.totalPaid || monthlyFee) / 1.16)} MXN</strong>
+                <span style={{ color: '#6b5c52' }}>Cuota Mensual del Servicio:</span>
+                <strong>{formatMoney(selectedReceiptForModal.totalPaid || monthlyFee)} MXN</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.88rem' }}>
-                <span style={{ color: '#6b5c52' }}>Impuesto IVA (16% trasladado):</span>
-                <span>{formatMoney(((selectedReceiptForModal.totalPaid || monthlyFee) * 0.16) / 1.16)} MXN</span>
+                <span style={{ color: '#6b5c52' }}>Cargos extra por pedidos:</span>
+                <span style={{ color: '#16a34a', fontWeight: 600 }}>$0.00 MXN (Incluido)</span>
               </div>
               <div
                 style={{
