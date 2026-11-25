@@ -1,12 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useCart } from '../context/CartContext';
 import { BUSINESS_DATA } from '../data/menuData';
+
+const NAV_ITEMS = [
+  { id: 'inicio', label: 'Inicio', icon: '☕' },
+  { id: 'especiales', label: 'Especialidades', icon: '⭐' },
+  { id: 'catalogo', label: 'Menú Digital', icon: '📖' },
+  { id: 'nosotros', label: 'Nuestra Historia', icon: '🌿' },
+  { id: 'contacto', label: 'Ubicación & Horarios', icon: '📍' },
+];
 
 export default function Header() {
   const { totalItemsCount, setIsCartOpen, liveStatus } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('inicio');
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const brand = BUSINESS_DATA.brand || {};
   const contact = BUSINESS_DATA.contact || {};
@@ -14,6 +24,68 @@ export default function Header() {
 
   const statusBadgeClass = liveStatus?.isOpen ? 'status-badge is-open' : 'status-badge is-closed';
   const statusBadgeText = liveStatus?.badgeText || 'Abierto Hoy: 7:00 am - 10:00 pm';
+
+  // Scrollspy: detecta automáticamente en qué sección nos encontramos
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 30);
+
+      // Si el usuario llega al final de la página, activa la última sección (contacto)
+      const windowHeight = window.innerHeight;
+      const fullHeight = document.documentElement.scrollHeight;
+      if (windowHeight + scrollPosition >= fullHeight - 80) {
+        setActiveSection('contacto');
+        return;
+      }
+
+      // Offset considerando el header sticky (aprox 120px)
+      const headerOffset = 140;
+      const sectionIds = ['contacto', 'nosotros', 'catalogo', 'especiales', 'inicio'];
+
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.offsetTop - headerOffset;
+          if (scrollPosition >= top) {
+            setActiveSection(id);
+            return;
+          }
+        }
+      }
+
+      setActiveSection('inicio');
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Navegación suave al hacer clic en los enlaces
+  const scrollToSection = useCallback(
+    (e, id) => {
+      e.preventDefault();
+      const el = document.getElementById(id);
+      if (el) {
+        const headerOffset = 85;
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        const offsetPosition = Math.max(0, elementPosition - headerOffset);
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
+        setActiveSection(id);
+        window.history.pushState(null, '', `#${id}`);
+      }
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    },
+    [mobileMenuOpen]
+  );
 
   return (
     <>
@@ -31,18 +103,27 @@ export default function Header() {
             <a href={`tel:${contact.phoneRaw || '+529831226847'}`} className="top-info-link" id="topNoticePhone">
               📞 {contact.phoneDisplay || '+52 983 122 6847'}
             </a>
-            <a href="#contacto" className="top-info-link">
+            <a
+              href="#contacto"
+              className="top-info-link"
+              onClick={(e) => scrollToSection(e, 'contacto')}
+            >
               🕒 Ver todos los horarios
             </a>
           </div>
         </div>
       </div>
 
-      {/* Header / Barra de Navegación Principal */}
-      <header className="site-header" id="siteHeader">
+      {/* Header / Barra de Navegación Principal con efecto scrolled */}
+      <header className={`site-header ${isScrolled ? 'scrolled' : ''}`} id="siteHeader">
         <div className="container nav-inner">
           {/* Logotipo de Marca */}
-          <a href="#inicio" className="brand-logo" aria-label="Cafetería María Bonita - Inicio">
+          <a
+            href="#inicio"
+            className="brand-logo"
+            aria-label="Cafetería María Bonita - Inicio"
+            onClick={(e) => scrollToSection(e, 'inicio')}
+          >
             <div className="brand-icon-wrapper">
               <svg
                 width="24"
@@ -67,21 +148,33 @@ export default function Header() {
             </div>
           </a>
 
-          {/* Enlaces Desktop */}
+          {/* Enlaces Desktop Dinámicos con ScrollSpy */}
           <nav aria-label="Navegación principal">
             <ul className="nav-links">
-              <li><a href="#inicio" className="nav-link active">Inicio</a></li>
-              <li><a href="#especiales" className="nav-link">Especialidades</a></li>
-              <li><a href="#catalogo" className="nav-link">Menú Digital</a></li>
-              <li><a href="#nosotros" className="nav-link">Nuestra Historia</a></li>
-              <li><a href="#contacto" className="nav-link">Ubicación & Horarios</a></li>
+              {NAV_ITEMS.map((item) => (
+                <li key={item.id}>
+                  <a
+                    href={`#${item.id}`}
+                    className={`nav-link ${activeSection === item.id ? 'active' : ''}`}
+                    onClick={(e) => scrollToSection(e, item.id)}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </nav>
 
           {/* Acciones de Cabecera */}
           <div className="header-actions">
             {/* Botón rápido para buscar */}
-            <a href="#catalogo" className="search-trigger-btn" id="openSearchBtn" aria-label="Buscar en el menú">
+            <a
+              href="#catalogo"
+              className="search-trigger-btn"
+              id="openSearchBtn"
+              aria-label="Buscar en el menú"
+              onClick={(e) => scrollToSection(e, 'catalogo')}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -138,18 +231,33 @@ export default function Header() {
                 type="button"
                 id="closeMobileNavBtn"
                 onClick={() => setMobileMenuOpen(false)}
-                style={{ fontSize: '1.5rem', color: 'var(--espresso-900)', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{
+                  fontSize: '1.5rem',
+                  color: 'var(--espresso-900)',
+                  padding: '0.5rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
                 aria-label="Cerrar navegación"
               >
                 ✕
               </button>
             </div>
             <ul className="mobile-nav-links">
-              <li><a href="#inicio" className="mobile-nav-link close-mobile-on-click" onClick={() => setMobileMenuOpen(false)}>☕ Inicio</a></li>
-              <li><a href="#especiales" className="mobile-nav-link close-mobile-on-click" onClick={() => setMobileMenuOpen(false)}>⭐ Especialidades</a></li>
-              <li><a href="#catalogo" className="mobile-nav-link close-mobile-on-click" onClick={() => setMobileMenuOpen(false)}>📖 Menú Digital</a></li>
-              <li><a href="#nosotros" className="mobile-nav-link close-mobile-on-click" onClick={() => setMobileMenuOpen(false)}>🌿 Nuestra Historia</a></li>
-              <li><a href="#contacto" className="mobile-nav-link close-mobile-on-click" onClick={() => setMobileMenuOpen(false)}>📍 Ubicación & Horarios</a></li>
+              {NAV_ITEMS.map((item) => (
+                <li key={item.id}>
+                  <a
+                    href={`#${item.id}`}
+                    className={`mobile-nav-link close-mobile-on-click ${activeSection === item.id ? 'active' : ''}`}
+                    style={activeSection === item.id ? { color: 'var(--terracotta-600)' } : undefined}
+                    onClick={(e) => scrollToSection(e, item.id)}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
           <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>

@@ -1538,14 +1538,48 @@
       link.addEventListener('click', closeMobileNav);
     });
 
-    // Efecto scrolled en Header
+    // Efecto scrolled y ScrollSpy dinámico en Header
+    const sectionIds = ['contacto', 'nosotros', 'catalogo', 'especiales', 'inicio'];
+    const navLinks = document.querySelectorAll('.nav-link');
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 30) {
+      const scrollPos = window.scrollY;
+
+      if (scrollPos > 30) {
         DOM.siteHeader?.classList.add('scrolled');
       } else {
         DOM.siteHeader?.classList.remove('scrolled');
       }
-    });
+
+      // ScrollSpy
+      let currentSection = 'inicio';
+      const windowHeight = window.innerHeight;
+      const fullHeight = document.documentElement.scrollHeight;
+
+      if (windowHeight + scrollPos >= fullHeight - 80) {
+        currentSection = 'contacto';
+      } else {
+        const headerOffset = 140;
+        for (const id of sectionIds) {
+          const el = document.getElementById(id);
+          if (el && scrollPos >= el.offsetTop - headerOffset) {
+            currentSection = id;
+            break;
+          }
+        }
+      }
+
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        link.classList.toggle('active', href === `#${currentSection}`);
+      });
+
+      mobileLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        link.classList.toggle('active', href === `#${currentSection}`);
+      });
+    }, { passive: true });
   }
 
   // --- ARRANQUE DE LA APLICACIÓN ---
