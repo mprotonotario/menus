@@ -150,7 +150,7 @@ export function getStoredOrders() {
 /**
  * Registrar un nuevo pedido generado desde el carrito de compras
  */
-export function recordNewOrder({ orderType, tableOrName, items = [], total = 0 }) {
+export function recordNewOrder({ orderType, customerRef, tableOrName, items = [], total = 0 }) {
   if (typeof window === 'undefined') return null;
 
   try {
@@ -158,12 +158,18 @@ export function recordNewOrder({ orderType, tableOrName, items = [], total = 0 }
     const config = getPlatformBillingConfig();
     const commission = Number(config.commissionPerOrder) || 3;
 
+    let normalizedType = 'Pasar a Buscar';
+    if (orderType === 'delivery' || orderType === 'A Domicilio') normalizedType = 'A Domicilio';
+    else if (orderType === 'pickup' || orderType === 'Pasar a Buscar') normalizedType = 'Pasar a Buscar';
+    else if (orderType === 'mesa') normalizedType = 'Mesa';
+    else if (orderType) normalizedType = orderType;
+
     const newOrder = {
       id: `ORD-${Date.now().toString(36).toUpperCase()}`,
       folio: 1048 + orders.length,
       createdAt: new Date().toISOString(),
-      orderType: orderType === 'mesa' ? 'Mesa' : 'Para Llevar',
-      customerRef: tableOrName?.trim() || 'Sin especificar',
+      orderType: normalizedType,
+      customerRef: customerRef?.trim() || tableOrName?.trim() || 'Sin especificar',
       itemsCount: items.reduce((sum, item) => sum + (item.quantity || 1), 0),
       itemsSummary: items.map((i) => `${i.quantity}x ${i.name}`).join(', '),
       orderTotal: Number(total) || 0,

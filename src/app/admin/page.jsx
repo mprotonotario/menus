@@ -656,8 +656,8 @@ export default function AdminBillingPage() {
 
   // Filtrado de pedidos
   const filteredOrders = useMemo(() => {
-    if (ordersFilter === 'mesa') return orders.filter((o) => o.orderType === 'Mesa');
-    if (ordersFilter === 'llevar') return orders.filter((o) => o.orderType !== 'Mesa');
+    if (ordersFilter === 'domicilio') return orders.filter((o) => o.orderType?.includes('Domicilio'));
+    if (ordersFilter === 'pickup') return orders.filter((o) => o.orderType?.includes('Buscar') || o.orderType === 'Para Llevar' || o.orderType === 'Mesa');
     return orders;
   }, [orders, ordersFilter]);
 
@@ -1211,25 +1211,25 @@ export default function AdminBillingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setOrdersFilter('mesa')}
+                onClick={() => setOrdersFilter('pickup')}
                 style={{
                   ...styles.filterBtn,
-                  background: ordersFilter === 'mesa' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'mesa' ? '#ffffff' : '#27170e',
+                  background: ordersFilter === 'pickup' ? '#c25428' : '#ffffff',
+                  color: ordersFilter === 'pickup' ? '#ffffff' : '#27170e',
                 }}
               >
-                Consumo en Mesa ({orders.filter((o) => o.orderType === 'Mesa').length})
+                Pasar a Buscar ({orders.filter((o) => o.orderType?.includes('Buscar') || o.orderType === 'Para Llevar' || o.orderType === 'Mesa').length})
               </button>
               <button
                 type="button"
-                onClick={() => setOrdersFilter('llevar')}
+                onClick={() => setOrdersFilter('domicilio')}
                 style={{
                   ...styles.filterBtn,
-                  background: ordersFilter === 'llevar' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'llevar' ? '#ffffff' : '#27170e',
+                  background: ordersFilter === 'domicilio' ? '#c25428' : '#ffffff',
+                  color: ordersFilter === 'domicilio' ? '#ffffff' : '#27170e',
                 }}
               >
-                Para Llevar ({orders.filter((o) => o.orderType !== 'Mesa').length})
+                A Domicilio ({orders.filter((o) => o.orderType?.includes('Domicilio')).length})
               </button>
             </div>
           </div>

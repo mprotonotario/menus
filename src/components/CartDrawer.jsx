@@ -20,8 +20,11 @@ export default function CartDrawer() {
     formatMoney,
   } = useCart();
 
-  const [orderType, setOrderType] = useState('mesa'); // 'mesa' | 'llevar'
-  const [tableOrName, setTableOrName] = useState('');
+  const [orderType, setOrderType] = useState('pickup'); // 'pickup' | 'delivery'
+  const [customerName, setCustomerName] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [formError, setFormError] = useState('');
   const [billingStatus, setBillingStatus] = useState(null);
 
   useEffect(() => {
@@ -59,6 +62,18 @@ export default function CartDrawer() {
   const sendWhatsAppOrder = () => {
     if (cart.length === 0) return;
 
+    if (!customerName.trim()) {
+      setFormError('Por favor ingresa tu nombre para identificar el pedido.');
+      return;
+    }
+
+    if (orderType === 'delivery' && !deliveryAddress.trim()) {
+      setFormError('Por favor proporciona la dirección para la entrega a domicilio.');
+      return;
+    }
+
+    setFormError('');
+
     // Verificar si la plataforma se encuentra en modo solo lectura por morosidad o pausa manual
     if (isSuspended) {
       alert(
@@ -75,10 +90,17 @@ export default function CartDrawer() {
     })}\n`;
     msg += `--------------------------------\n`;
 
-    const typeStr = orderType === 'mesa' ? '🍽️ Consumo en Mesa' : '🛍️ Para Llevar';
+    const typeStr = orderType === 'delivery' ? '🛵 Servicio a Domicilio' : '🛍️ Pasar a buscar al establecimiento';
     msg += `*Tipo de Servicio:* ${typeStr}\n`;
-    if (tableOrName.trim()) {
-      msg += `*Mesa / Referencia:* ${tableOrName.trim()}\n`;
+    msg += `*Cliente:* ${customerName.trim()}\n`;
+
+    if (orderType === 'delivery') {
+      msg += `*Dirección de Entrega:* ${deliveryAddress.trim()}\n`;
+      if (deliveryNotes.trim()) {
+        msg += `*Referencias:* ${deliveryNotes.trim()}\n`;
+      }
+    } else {
+      msg += `*Modalidad:* Pasar a recoger en barra del establecimiento\n`;
     }
     msg += `--------------------------------\n`;
     msg += `*DETALLE DE PLATILLOS:*\n\n`;
@@ -112,11 +134,11 @@ export default function CartDrawer() {
     msg += `--------------------------------\n`;
     msg += `_Comanda enviada desde el Menú Digital_`;
 
-    // Registrar pedido en el sistema contable de la plataforma para comisión
+    // Registrar pedido en el sistema contable de la plataforma
     try {
       recordNewOrder({
-        orderType,
-        tableOrName,
+        orderType: orderType === 'delivery' ? 'A Domicilio' : 'Pasar a Buscar',
+        customerRef: customerName.trim() + (orderType === 'delivery' ? ` — ${deliveryAddress.trim()}` : ''),
         items: cart,
         total: cartSubtotal,
       });
@@ -225,27 +247,85 @@ export default function CartDrawer() {
               <div className="order-type-tabs">
                 <button
                   type="button"
-                  className={`order-type-tab-btn ${orderType === 'mesa' ? 'active' : ''}`}
-                  onClick={() => setOrderType('mesa')}
+                  className={`order-type-tab-btn ${orderType === 'pickup' ? 'active' : ''}`}
+                  onClick={() => {
+                    setOrderType('pickup');
+                    setFormError('');
+                  }}
                 >
-                  🍽️ Consumo en Mesa
+                  🛍️ Pasar a buscar
                 </button>
                 <button
                   type="button"
-                  className={`order-type-tab-btn ${orderType === 'llevar' ? 'active' : ''}`}
-                  onClick={() => setOrderType('llevar')}
+                  className={`order-type-tab-btn ${orderType === 'delivery' ? 'active' : ''}`}
+                  onClick={() => {
+                    setOrderType('delivery');
+                    setFormError('');
+                  }}
                 >
-                  🛍️ Para Llevar
+                  🛵 A Domicilio
                 </button>
               </div>
-              <input
-                type="text"
-                className="table-input-field"
-                value={tableOrName}
-                onChange={(e) => setTableOrName(e.target.value)}
-                placeholder="Número de mesa o nombre de quien ordena"
-                maxLength={30}
-              />
+
+              {/* Nombre del cliente */}
+              <div style={{ marginTop: '0.65rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                  Nombre del cliente: <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  className="table-input-field"
+                  style={{ marginTop: 0 }}
+                  value={customerName}
+                  onChange={(e) => {
+                    setCustomerName(e.target.value);
+                    if (formError) setFormError('');
+                  }}
+                  placeholder="Tu nombre completo"
+                  maxLength={50}
+                />
+              </div>
+
+              {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
+              {orderType === 'delivery' ? (
+                <div style={{ marginTop: '0.65rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                    Domicilio de entrega: <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="table-input-field"
+                    style={{ marginTop: 0 }}
+                    value={deliveryAddress}
+                    onChange={(e) => {
+                      setDeliveryAddress(e.target.value);
+                      if (formError) setFormError('');
+                    }}
+                    placeholder="Calle, número exterior/interior y colonia"
+                    maxLength={120}
+                  />
+                  <input
+                    type="text"
+                    className="table-input-field"
+                    style={{ marginTop: '0.35rem', fontSize: '0.8rem' }}
+                    value={deliveryNotes}
+                    onChange={(e) => setDeliveryNotes(e.target.value)}
+                    placeholder="Referencias de entrega (opcional, ej. Fachada blanca)"
+                    maxLength={100}
+                  />
+                </div>
+              ) : (
+                <div style={{ marginTop: '0.55rem', background: '#ffffff', border: '1px solid #ebd9c5', borderRadius: '8px', padding: '0.45rem 0.65rem', fontSize: '0.76rem', color: '#6b5c52', lineHeight: 1.35 }}>
+                  📍 <strong>Recoger en:</strong> {BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}. Tu pedido se preparará para entrega en barra.
+                </div>
+              )}
+
+              {/* Mensaje de validación amigable */}
+              {formError && (
+                <div style={{ marginTop: '0.65rem', color: '#b91c1c', fontSize: '0.78rem', background: '#fee2e2', border: '1px solid #fecaca', padding: '0.45rem 0.65rem', borderRadius: '6px', textAlign: 'center', fontWeight: 600 }}>
+                  ⚠️ {formError}
+                </div>
+              )}
             </div>
 
             <div className="cart-summary-line">
