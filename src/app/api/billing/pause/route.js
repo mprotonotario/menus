@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { setPlatformSuspension, evaluateBillingStatus } from '../../../../lib/billingStatus';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(request) {
   try {
@@ -12,7 +14,26 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: result.message }, { status: 401 });
     }
 
-    const updatedStatus = evaluateBillingStatus();
+    // Persistir en disco en data/billing-control.json
+    try {
+      const controlDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(controlDir)) fs.mkdirSync(controlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(controlDir, 'billing-control.json'),
+        JSON.stringify(
+          {
+            isSuspended: Boolean(suspend),
+            lastUpdated: new Date().toISOString(),
+          },
+          null,
+          2
+        )
+      );
+    } catch (fsErr) {
+      console.warn('Error al persistir billing-control.json:', fsErr);
+    }
+
+    const updatedStatus = evaluateBillingStatus({ isSuspended: Boolean(suspend) });
 
     return NextResponse.json(
       {

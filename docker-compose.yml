@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "3003:3000"
+    volumes:
+      - ./data:/app/data
     env_file:
       - .env
     environment:
@@ -24,6 +26,7 @@ services:
       - menus-app
     volumes:
       - ./scripts:/app/scripts:ro
+      - ./data:/app/data
     working_dir: /app
     env_file:
       - .env

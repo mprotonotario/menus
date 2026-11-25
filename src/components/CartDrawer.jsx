@@ -24,17 +24,24 @@ export default function CartDrawer() {
   const [billingStatus, setBillingStatus] = useState(null);
 
   useEffect(() => {
-    const checkBilling = () => {
+    let isMounted = true;
+    const checkBilling = async () => {
       try {
+        const res = await fetch('/api/billing/status').then((r) => r.json()).catch(() => null);
+        if (isMounted && res?.billingStatus) {
+          setBillingStatus(res.billingStatus);
+          return;
+        }
+      } catch (err) {}
+      if (isMounted) {
         setBillingStatus(evaluateBillingStatus());
-      } catch (err) {
-        console.warn('Error evaluating billing status:', err);
       }
     };
     checkBilling();
     window.addEventListener('mb_billing_renewed', checkBilling);
     window.addEventListener('storage', checkBilling);
     return () => {
+      isMounted = false;
       window.removeEventListener('mb_billing_renewed', checkBilling);
       window.removeEventListener('storage', checkBilling);
     };

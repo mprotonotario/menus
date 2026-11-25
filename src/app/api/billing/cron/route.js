@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import {
   evaluateBillingStatus,
   generateWhatsappReminderMessage,
@@ -6,6 +8,18 @@ import {
   sendTelegramAdminNotification,
   getCancunDateParts,
 } from '../../../../lib/billingStatus';
+
+function getLiveFileSuspended() {
+  try {
+    const controlPath = path.join(process.cwd(), 'data', 'billing-control.json');
+    if (fs.existsSync(controlPath)) {
+      const raw = fs.readFileSync(controlPath, 'utf8');
+      const json = JSON.parse(raw);
+      if (typeof json.isSuspended === 'boolean') return json.isSuspended;
+    }
+  } catch {}
+  return null;
+}
 
 // Almacén en memoria del último ciclo notificado para evitar envíos duplicados en un mismo día/ciclo
 let lastNotifiedCycle = null;
@@ -39,7 +53,10 @@ async function handleCron(request) {
     }
 
     const cancunNow = getCancunDateParts();
-    const billingStatus = evaluateBillingStatus();
+    const liveSuspended = getLiveFileSuspended();
+    const billingStatus = evaluateBillingStatus(
+      liveSuspended !== null ? { isSuspended: liveSuspended } : null
+    );
 
     const isTargetReminderDay =
       forceSimulate ||
