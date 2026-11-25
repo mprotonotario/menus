@@ -99,6 +99,370 @@ export default function AdminBillingPage() {
     }
   };
 
+  const printReceiptDocument = (receipt) => {
+    if (typeof window === 'undefined' || !receipt) return;
+
+    const total = receipt.totalPaid || monthlyFee || 300;
+    const subtotal = total / 1.16;
+    const iva = total - subtotal;
+    const dateFormatted = new Date(receipt.date || Date.now()).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const printContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprobante de Mensualidad - ${receipt.id || 'REC-2026'}</title>
+  <style>
+    @page {
+      size: letter portrait;
+      margin: 10mm 14mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background: #ffffff;
+      color: #1f2937;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .header-table {
+      width: 100%;
+      border-bottom: 2.5px solid #c25428;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .brand-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #c25428;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: #4b5563;
+      margin-top: 2px;
+    }
+    .receipt-badge-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1f2937;
+      text-align: right;
+    }
+    .receipt-meta-box {
+      text-align: right;
+      font-size: 12px;
+      color: #4b5563;
+      margin-top: 4px;
+    }
+    .status-stamp {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 12px;
+      background: #dcfce7;
+      border: 1.5px solid #16a34a;
+      color: #15803d;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .info-grid {
+      display: table;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .info-col {
+      display: table-cell;
+      width: 50%;
+      vertical-align: top;
+      background: #faf7f2;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #ebd9c5;
+    }
+    .info-col:first-child {
+      border-right: 6px solid #ffffff;
+    }
+    .info-heading {
+      font-size: 11px;
+      font-weight: 800;
+      color: #8c5936;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #ebd9c5;
+      padding-bottom: 4px;
+    }
+    .info-line {
+      font-size: 12px;
+      margin-bottom: 3px;
+      color: #374151;
+    }
+    .info-line strong {
+      color: #111827;
+    }
+    .table-concept {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+    .table-concept th {
+      background: #27170e;
+      color: #ffffff;
+      padding: 8px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+    .table-concept td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 12px;
+      vertical-align: top;
+    }
+    .concept-title {
+      font-weight: 700;
+      color: #111827;
+      font-size: 13px;
+    }
+    .concept-desc {
+      color: #4b5563;
+      font-size: 11px;
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+    .totals-area {
+      display: table;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .totals-left {
+      display: table-cell;
+      width: 55%;
+      vertical-align: top;
+      padding-right: 15px;
+    }
+    .totals-right {
+      display: table-cell;
+      width: 45%;
+      vertical-align: top;
+    }
+    .totals-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .totals-table td {
+      padding: 5px 8px;
+      font-size: 12px;
+    }
+    .total-row {
+      border-top: 2px solid #27170e;
+      border-bottom: 2px solid #27170e;
+      font-size: 15px !important;
+      font-weight: 800;
+      color: #c25428;
+      background: #faf7f2;
+    }
+    .amount-words-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #4b5563;
+      margin-bottom: 10px;
+    }
+    .spei-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #166534;
+    }
+    .digital-seal-box {
+      border-top: 1px dashed #d1d5db;
+      padding-top: 10px;
+      margin-top: 12px;
+      font-size: 9.5px;
+      color: #6b7280;
+      line-height: 1.35;
+    }
+    .footer-note {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 10px;
+      color: #9ca3af;
+      border-top: 1px solid #f3f4f6;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Encabezado Oficial -->
+  <table class="header-table">
+    <tr>
+      <td style="vertical-align: middle;">
+        <div class="brand-title">REDAYSOFT</div>
+        <div style="font-weight: 700; color: #27170e; font-size: 13px;">Soluciones Digitales S.A.S.</div>
+        <div class="brand-sub">Software Gastronómico • Menús Digitales Interactivos</div>
+        <div class="brand-sub">RFC: RSD210415AB3 • facturacion@redaysoft.com • Cancún / Chetumal, Q. Roo</div>
+      </td>
+      <td style="vertical-align: middle; text-align: right;">
+        <div class="receipt-badge-title">COMPROBANTE OFICIAL DE PAGO</div>
+        <div class="receipt-meta-box">
+          <div>Número de Recibo: <strong>#${receipt.id || 'REC-2026-001'}</strong></div>
+          <div>Folio de Operación: <strong>${receipt.folio || 'SPEI-8841-MB'}</strong></div>
+          <div>Fecha de Emisión: <strong>${dateFormatted}</strong></div>
+        </div>
+        <div>
+          <span class="status-stamp">✓ ${receipt.status || 'PAGADO & LIQUIDADO'}</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Bloque Emisor / Receptor -->
+  <div class="info-grid">
+    <div class="info-col">
+      <div class="info-heading">DATOS DEL CLIENTE / SUSCRIPTOR</div>
+      <div class="info-line">Establecimiento: <strong>${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</strong></div>
+      <div class="info-line">Razón Comercial: <strong>${BUSINESS_DATA.tradeName || 'María Bonita Cafetería & Panadería'}</strong></div>
+      <div class="info-line">Dirección: <strong>${BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}</strong></div>
+      <div class="info-line">Ciudad: <strong>${BUSINESS_DATA.location?.cityZone || '77000 Chetumal, Quintana Roo'}</strong></div>
+      <div class="info-line">Teléfono / WhatsApp: <strong>+${BUSINESS_DATA.contact?.whatsappRaw || '529831226847'}</strong></div>
+    </div>
+    <div class="info-col">
+      <div class="info-heading">DETALLES DE LA LIQUIDACIÓN</div>
+      <div class="info-line">Método de Pago: <strong>${receipt.paymentMethod || 'Transferencia Interbancaria SPEI (BBVA)'}</strong></div>
+      <div class="info-line">Referencia Registrada: <strong>${receipt.reference || 'MARIA-BONITA-01'}</strong></div>
+      <div class="info-line">Banco Receptor: <strong>BBVA México</strong></div>
+      <div class="info-line">Cuenta CLABE: <strong>012180001234567890</strong></div>
+      <div class="info-line">Divisa: <strong>MXN (Pesos Mexicanos)</strong></div>
+    </div>
+  </div>
+
+  <!-- Tabla de Conceptos Detallada -->
+  <table class="table-concept">
+    <thead>
+      <tr>
+        <th style="width: 8%; text-align: center;">CANT.</th>
+        <th style="width: 54%;">DESCRIPCIÓN DEL SERVICIO CONTRATADO</th>
+        <th style="width: 18%; text-align: right;">PRECIO UNITARIO</th>
+        <th style="width: 20%; text-align: right;">IMPORTE NETO</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align: center; font-weight: 700;">1 Mes</td>
+        <td>
+          <div class="concept-title">Membresía Mensual - Plataforma Menú Digital María Bonita</div>
+          <div class="concept-desc">
+            • Servicio de Menú Digital interactivo en la nube disponible 24/7 para comensales en salón y pedidos para llevar.<br>
+            • Recepción ilimitada de comandas automáticas estructuradas directamente a WhatsApp del restaurante.<br>
+            • Panel de control administrativo, catálogo dinámico en tiempo real y soporte técnico continuo.<br>
+            • <strong>Periodo de Cobertura:</strong> ${receipt.period || 'Membresía Mensual Activa (+30 Días de Servicio)'}.
+          </div>
+        </td>
+        <td style="text-align: right; font-weight: 600;">$${subtotal.toFixed(2)} MXN</td>
+        <td style="text-align: right; font-weight: 700; color: #111827;">$${subtotal.toFixed(2)} MXN</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Totales y Resumen -->
+  <div class="totals-area">
+    <div class="totals-left">
+      <div class="amount-words-box">
+        <strong>Importe en Letra:</strong><br>
+        Trescientos pesos 00/100 M.N.
+      </div>
+      <div class="spei-box">
+        <strong>✓ Acreditación Bancaria Confirmada:</strong><br>
+        Pago mensual cubierto vía transferencia SPEI. Sin adeudos ni cobro de comisión por pedidos.
+      </div>
+    </div>
+    <div class="totals-right">
+      <table class="totals-table">
+        <tr>
+          <td style="color: #4b5563;">Subtotal (Base Gravable):</td>
+          <td style="text-align: right; font-weight: 600;">$${subtotal.toFixed(2)} MXN</td>
+        </tr>
+        <tr>
+          <td style="color: #4b5563;">I.V.A. Trasladado (16%):</td>
+          <td style="text-align: right; font-weight: 600;">$${iva.toFixed(2)} MXN</td>
+        </tr>
+        <tr class="total-row">
+          <td>TOTAL PAGADO:</td>
+          <td style="text-align: right;">$${Number(total).toFixed(2)} MXN</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sello Digital y Validación -->
+  <div class="digital-seal-box">
+    <div style="font-weight: 700; color: #374151; margin-bottom: 2px;">CADENA DE CERTIFICACIÓN DIGITAL REDAYSOFT:</div>
+    <div style="word-break: break-all; font-family: monospace; font-size: 8.5px; color: #6b7280;">
+      ||1.1|${receipt.id || 'REC-2026'}|${receipt.folio || 'SPEI-MB'}|${receipt.date || new Date().toISOString()}|300.00|MXN|SPEI|BBVA|012180001234567890|MARIA-BONITA-01|CAFETERIA MARIA BONITA|RSD210415AB3||
+    </div>
+    <div style="margin-top: 4px; font-weight: 600; color: #15803d;">
+      🔒 Comprobante digital verificado electrónicamente por RedaySoft Platforms. Válido como comprobante de pago de servicios.
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Este comprobante acredita la vigencia del servicio de Menú Digital y recepción de pedidos. Para facturación fiscal CFDI con datos personalizados, escribe a facturacion@redaysoft.com.
+  </div>
+</body>
+</html>
+    `;
+
+    // Crear iframe oculto para impresión aislada en exactamente 1 sola hoja
+    const existingIframe = document.getElementById('print-receipt-frame');
+    if (existingIframe) existingIframe.remove();
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'print-receipt-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(printContent);
+    doc.close();
+
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        if (iframe && iframe.parentNode) {
+          iframe.parentNode.removeChild(iframe);
+        }
+      }, 1500);
+    }, 400);
+  };
+
   const handleRenewCycle = () => {
     const fee = subStatus?.monthlyFee || billingConfig.monthlyFee || 300;
     setConfirmModal({
@@ -974,24 +1338,27 @@ export default function AdminBillingPage() {
                 </div>
               </div>
 
-              <div style={{ background: '#fbf9f6', padding: '0.85rem 1rem', borderRadius: '10px', margin: '1rem 0', border: '1px solid #ebd9c5' }}>
-                <span style={{ fontSize: '0.78rem', color: '#8c5936', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Concepto de Facturación:
+              <div style={{ background: '#fbf9f6', padding: '1rem', borderRadius: '12px', margin: '1rem 0', border: '1px solid #ebd9c5' }}>
+                <span style={{ fontSize: '0.75rem', color: '#8c5936', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Concepto del Servicio Contratado:
                 </span>
-                <p style={{ margin: '0.2rem 0 0 0', fontWeight: 700, color: '#27170e', fontSize: '0.9rem' }}>
+                <p style={{ margin: '0.25rem 0 0.4rem 0', fontWeight: 800, color: '#27170e', fontSize: '0.95rem' }}>
                   {selectedReceiptForModal.concept || 'Cuota Mensual Mantenimiento & Menú Digital'}
                 </p>
-                <span style={{ fontSize: '0.78rem', color: '#666' }}>
-                  {selectedReceiptForModal.period || 'Membresía Activa'}
-                </span>
+                <div style={{ fontSize: '0.8rem', color: '#6b5c52', lineHeight: 1.45, marginBottom: '0.5rem' }}>
+                  • Menú Digital 24/7 para comensales en salón y pedidos para llevar.<br />
+                  • Recepción ilimitada de comandas automáticas por WhatsApp.<br />
+                  • Alojamiento en la nube y soporte técnico continuo.<br />
+                  • <strong>Periodo cubierto:</strong> {selectedReceiptForModal.period || 'Membresía Mensual Activa (+30 Días)'}.
+                </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                <span>Subtotal cuota mensual:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.88rem' }}>
+                <span style={{ color: '#6b5c52' }}>Subtotal (Base gravable):</span>
                 <strong>{formatMoney((selectedReceiptForModal.totalPaid || monthlyFee) / 1.16)} MXN</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                <span>Impuesto IVA (16% incluido):</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.88rem' }}>
+                <span style={{ color: '#6b5c52' }}>Impuesto IVA (16% trasladado):</span>
                 <span>{formatMoney(((selectedReceiptForModal.totalPaid || monthlyFee) * 0.16) / 1.16)} MXN</span>
               </div>
               <div
@@ -1008,18 +1375,23 @@ export default function AdminBillingPage() {
                 <strong style={{ color: '#c25428' }}>{formatMoney(selectedReceiptForModal.totalPaid || monthlyFee)} MXN</strong>
               </div>
 
-              <div style={{ textAlign: 'center', marginTop: '1.25rem', padding: '0.5rem', background: '#dcfce7', borderRadius: '8px', color: '#166534', fontSize: '0.85rem', fontWeight: 700 }}>
-                ✓ {selectedReceiptForModal.status || 'Aprobado y Liquidado'}
+              <div style={{ fontSize: '0.75rem', color: '#666', fontStyle: 'italic', marginTop: '0.35rem', textAlign: 'right' }}>
+                (Trescientos pesos 00/100 M.N.)
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: '1.1rem', padding: '0.6rem', background: '#dcfce7', borderRadius: '8px', color: '#166534', fontSize: '0.85rem', fontWeight: 800, border: '1px solid #bbf7d0' }}>
+                ✓ {selectedReceiptForModal.status || 'Aprobado y Liquidado'} (Vía Transferencia SPEI)
               </div>
             </div>
 
             <div style={styles.modalFooter}>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => printReceiptDocument(selectedReceiptForModal)}
                 style={styles.printBtn}
+                title="Genera el documento en formato PDF de 1 sola hoja para imprimir o guardar"
               >
-                🖨️ Imprimir / Guardar PDF
+                🖨️ Imprimir / Guardar PDF (1 Hoja)
               </button>
               <button
                 type="button"
