@@ -7,10 +7,12 @@ services:
     restart: unless-stopped
     ports:
       - "3003:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - CRON_SECRET=cron_secret_maria_bonita_2026
+      - CRON_SECRET=${CRON_SECRET:-cron_secret_maria_bonita_2026}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
 
@@ -23,10 +25,12 @@ services:
     volumes:
       - ./scripts:/app/scripts:ro
     working_dir: /app
+    env_file:
+      - .env
     environment:
       - TZ=America/Cancun
       - MENUS_APP_URL=http://menus-app:3000
-      - CRON_SECRET=cron_secret_maria_bonita_2026
+      - CRON_SECRET=${CRON_SECRET:-cron_secret_maria_bonita_2026}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
       - RUN_AT_HOUR_CANCUN=9
