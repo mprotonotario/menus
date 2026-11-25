@@ -1314,9 +1314,9 @@ export default function AdminBillingPage() {
               <div style={styles.receiptWatermarkBox}>
                 <div style={{ textAlign: 'center', marginBottom: '0.4rem' }}>
                   <img
-                    src="/assets/redaysoft-badge.png"
+                    src="/assets/redaysoft_logo.png"
                     alt="RedaySoft Soluciones Digitales"
-                    style={{ height: '42px', width: 'auto', borderRadius: '8px', objectFit: 'contain' }}
+                    style={{ height: '48px', width: 'auto', borderRadius: '8px', objectFit: 'contain' }}
                   />
                 </div>
                 <h2 style={{ margin: '0.2rem 0', fontSize: '1.45rem', color: '#27170e' }}>
