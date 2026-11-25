@@ -104,22 +104,25 @@ function getInitialSeedOrders(commissionRate) {
   ];
 }
 
-// Historial inicial de pagos simulados
+// Historial inicial de pagos mensuales
 function getInitialSeedHistory() {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
   return [
     {
-      id: 'BILL-REC-2026-001',
-      folio: 'FS-8841',
+      id: 'REC-2026-001',
+      folio: 'SPEI-8841-MB',
       date: new Date(now - dayMs * 15).toISOString(),
-      ordersCount: 2,
-      commissionPerOrder: 3,
-      totalPaid: 6,
+      period: 'Periodo 28 Octubre 2026 - 28 Noviembre 2026',
+      concept: 'Cuota Mensual Mantenimiento & Menú Digital',
+      ordersCount: 18,
+      totalPaid: 300,
       currency: 'MXN',
-      paymentMethod: 'Stripe Credit Card (•••• 4242)',
-      status: 'Completado',
-      company: 'RedaySoft Software & Menús Digitales',
+      paymentMethod: 'Transferencia Interbancaria SPEI (BBVA)',
+      reference: 'MARIA-BONITA-01',
+      status: 'Aprobado y Liquidado',
+      company: 'RedaySoft Soluciones Digitales',
+      restaurant: 'Cafetería María Bonita',
     },
   ];
 }
@@ -184,53 +187,64 @@ export function recordNewOrder({ orderType, tableOrName, items = [], total = 0 }
 }
 
 /**
- * Obtener el resumen de facturación y métricas para el dueño
+ * Obtener el resumen de suscripción mensual y métricas para el dueño
  */
 export function getBillingSummary() {
   const orders = getStoredOrders();
   const config = getPlatformBillingConfig();
-  const commissionRate = Number(config.commissionPerOrder) || 3;
+  const monthlyFee = Number(config.monthlyFee) || 300;
   const cycleDays = Number(config.cycleDays) || 30;
-
-  const unpaidOrders = orders.filter((o) => !o.paid);
-  const paidOrders = orders.filter((o) => o.paid);
-
-  const totalGrossRevenue = orders.reduce((sum, o) => sum + (Number(o.orderTotal) || 0), 0);
-  const pendingGrossRevenue = unpaidOrders.reduce((sum, o) => sum + (Number(o.orderTotal) || 0), 0);
-
-  const pendingCommissionAmount = unpaidOrders.reduce((sum, o) => sum + (Number(o.commissionAmount) || commissionRate), 0);
-  const totalPaidCommissionAmount = paidOrders.reduce((sum, o) => sum + (Number(o.commissionAmount) || commissionRate), 0);
-
-  // Calcular fecha de corte mensual:
-  // Tomamos como referencia el primer pedido sin pagar, o 30 días a partir de hoy
-  let oldestUnpaidDate = new Date();
-  if (unpaidOrders.length > 0) {
-    const dates = unpaidOrders.map((o) => new Date(o.createdAt).getTime()).sort();
-    oldestUnpaidDate = new Date(dates[0]);
-  }
-
-  const nextDueDate = new Date(oldestUnpaidDate.getTime() + cycleDays * 24 * 60 * 60 * 1000);
-  const now = new Date();
-  const diffMs = nextDueDate.getTime() - now.getTime();
-  const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const history = getBillingHistory();
+  const totalPaidHistory = history.reduce((sum, r) => sum + (Number(r.totalPaid) || 0), 0);
 
   return {
     totalOrdersCount: orders.length,
-    unpaidOrdersCount: unpaidOrders.length,
-    paidOrdersCount: paidOrders.length,
-    commissionRate,
+    monthlyFee,
     currency: config.currency || 'MXN',
-    pendingCommissionAmount,
-    totalPaidCommissionAmount,
-    totalGrossRevenue,
-    pendingGrossRevenue,
-    nextDueDate: nextDueDate.toISOString(),
-    daysRemaining,
+    historyCount: history.length,
+    totalPaidHistory,
     cycleDays,
-    isOverdue: daysRemaining === 0 && unpaidOrders.length > 0,
-    companyName: config.companyName,
-    supportEmail: config.supportEmail,
+    companyName: config.companyName || 'RedaySoft Soluciones Digitales',
+    supportEmail: config.supportEmail || 'facturacion@redaysoft.com',
   };
+}
+
+/**
+ * Registrar un nuevo pago mensual de la plataforma
+ */
+export function recordMonthlyPayment({
+  amount = 300,
+  paymentMethod = 'Transferencia Interbancaria SPEI (BBVA)',
+  reference = 'MARIA-BONITA-01',
+  period = '',
+} = {}) {
+  if (typeof window === 'undefined') return null;
+  try {
+    const history = getBillingHistory();
+    const invoiceNumber = `REC-2026-${String(history.length + 1).padStart(3, '0')}`;
+    const folio = `SPEI-${Date.now().toString(36).toUpperCase()}-MB`;
+    const newReceipt = {
+      id: invoiceNumber,
+      folio,
+      date: new Date().toISOString(),
+      period: period || `Membresía Mensual (+30 Días - ${new Date().toLocaleDateString('es-MX')})`,
+      concept: 'Cuota Mensual Mantenimiento & Menú Digital',
+      totalPaid: Number(amount) || 300,
+      currency: 'MXN',
+      paymentMethod,
+      reference,
+      status: 'Aprobado y Liquidado',
+      company: 'RedaySoft Soluciones Digitales',
+      restaurant: 'Cafetería María Bonita',
+    };
+    history.unshift(newReceipt);
+    localStorage.setItem(BILLING_HISTORY_KEY, JSON.stringify(history));
+    window.dispatchEvent(new CustomEvent('mb_billing_updated'));
+    return newReceipt;
+  } catch (e) {
+    console.error('Error recording monthly payment:', e);
+    return null;
+  }
 }
 
 /**

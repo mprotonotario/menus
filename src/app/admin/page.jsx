@@ -8,25 +8,23 @@ import {
   getStoredOrders,
   getBillingSummary,
   getBillingHistory,
-  processStripePayment,
-  addMockOrder,
+  recordMonthlyPayment,
 } from '../../utils/orderStorage';
 import {
   evaluateBillingStatus,
   renewBillingCycle,
   setPlatformSuspension,
-  generateWhatsappReminderMessage,
 } from '../../lib/billingStatus';
 
 export default function AdminBillingPage() {
   const { businessData } = useMenuData();
   const billingConfig = businessData?.platformBilling || BUSINESS_DATA.platformBilling || {
-    commissionPerOrder: 3,
+    commissionPerOrder: 0,
+    monthlyFee: 300,
     currency: 'MXN',
     cycleDays: 30,
     ownerPin: '2026',
-    stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx',
-    companyName: 'RedaySoft Software & Menús Digitales',
+    companyName: 'RedaySoft Soluciones Digitales',
     supportEmail: 'facturacion@redaysoft.com',
   };
 
@@ -39,21 +37,14 @@ export default function AdminBillingPage() {
   const [summary, setSummary] = useState(null);
   const [orders, setOrders] = useState([]);
   const [history, setHistory] = useState([]);
-  const [ordersFilter, setOrdersFilter] = useState('all'); // 'all' | 'unpaid' | 'paid'
+  const [ordersFilter, setOrdersFilter] = useState('all'); // 'all' | 'mesa' | 'llevar'
   const [subStatus, setSubStatus] = useState(null);
 
-  // Estado del pago con Stripe
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentSuccessReceipt, setPaymentSuccessReceipt] = useState(null);
+  // Modales y Feedback
   const [selectedReceiptForModal, setSelectedReceiptForModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [feedbackToast, setFeedbackToast] = useState(null);
-
-  // Formulario de tarjeta simulado de Stripe
-  const [cardName, setCardName] = useState('Miguel Protonotario');
-  const [cardNumber, setCardNumber] = useState('•••• •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvc, setCardCvc] = useState('•••');
+  const [copiedField, setCopiedField] = useState(null);
 
   // Cargar sesión y datos
   useEffect(() => {
@@ -66,7 +57,7 @@ export default function AdminBillingPage() {
     refreshData();
   }, []);
 
-  // Escuchar eventos de nuevos pedidos
+  // Escuchar eventos de nuevos pedidos y pagos
   useEffect(() => {
     const handleOrderChange = () => refreshData();
     window.addEventListener('mb_order_recorded', handleOrderChange);
@@ -100,7 +91,16 @@ export default function AdminBillingPage() {
     }, 4500);
   };
 
+  const handleCopy = (text, fieldName) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2500);
+    }
+  };
+
   const handleRenewCycle = () => {
+    const fee = subStatus?.monthlyFee || billingConfig.monthlyFee || 300;
     setConfirmModal({
       icon: '🔄',
       iconBg: '#dcfce7',
@@ -111,11 +111,11 @@ export default function AdminBillingPage() {
       badgeBg: '#dcfce7',
       badgeColor: '#15803d',
       title: '¿Renovar Ciclo de Facturación?',
-      message: 'Se sumará 1 mes a la fecha de corte actual y se reactivará la plataforma si se encontraba en modo pausa.',
+      message: `Se sumará 1 mes a la fecha de corte actual por la cuota fija de $${fee}.00 MXN y se reactivará la plataforma si se encontraba en modo pausa.`,
       points: [
-        'Se registrará el pago mensual de la plataforma.',
+        `Se registrará un comprobante de pago por $${fee}.00 MXN en el historial de recibos.`,
         'La nueva fecha de corte se extenderá 30 días automáticamente.',
-        'Se mantendrán todos los pedidos y el historial intactos.',
+        'La recepción de pedidos por WhatsApp se mantendrá activa e ilimitada.',
       ],
       bulletColor: '#16a34a',
       confirmText: 'Confirmar Renovación (+30 Días)',
@@ -132,9 +132,15 @@ export default function AdminBillingPage() {
 
           if (res.success) {
             renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
+            recordMonthlyPayment({
+              amount: fee,
+              paymentMethod: 'Transferencia Interbancaria SPEI (BBVA)',
+              reference: subStatus?.paymentInfo?.reference || 'MARIA-BONITA-01',
+              period: `Mensualidad renovada (Vence: ${res.newNextBillingDate || 'Próximo mes'})`,
+            });
             await refreshData();
             setConfirmModal(null);
-            showFeedbackToast('success', '¡Ciclo Renovado!', res.message);
+            showFeedbackToast('success', '¡Ciclo Renovado Exitosamente!', res.message);
           } else {
             setConfirmModal((prev) => ({ ...prev, isProcessing: false }));
             showFeedbackToast('error', 'Error en renovación', res.error || res.message);
@@ -257,13 +263,6 @@ export default function AdminBillingPage() {
     }
   };
 
-  const handleSendTestWhatsApp = () => {
-    if (!subStatus) return;
-    const msg = generateWhatsappReminderMessage(subStatus);
-    const phone = subStatus.billingPhone || '529831226847';
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
-
   const handleLogin = (e) => {
     e.preventDefault();
     if (pinInput.trim() === String(billingConfig.ownerPin).trim()) {
@@ -281,39 +280,10 @@ export default function AdminBillingPage() {
     setPinInput('');
   };
 
-  const handleAddDemoOrder = () => {
-    addMockOrder();
-    refreshData();
-  };
-
-  const handlePayWithStripe = (e) => {
-    e.preventDefault();
-    if (!summary || summary.pendingCommissionAmount <= 0) return;
-
-    setIsProcessingPayment(true);
-
-    // Simular latencia de verificación segura con los servidores de Stripe
-    setTimeout(() => {
-      const result = processStripePayment({
-        paymentMethod: 'Tarjeta de Crédito / Débito',
-        last4: cardNumber.replace(/\D/g, '').slice(-4) || '4242',
-      });
-
-      setIsProcessingPayment(false);
-
-      if (result.success) {
-        setPaymentSuccessReceipt(result.receipt);
-        refreshData();
-      } else {
-        alert(result.message || 'Error al procesar el pago en Stripe');
-      }
-    }, 1400);
-  };
-
   // Filtrado de pedidos
   const filteredOrders = useMemo(() => {
-    if (ordersFilter === 'unpaid') return orders.filter((o) => !o.paid);
-    if (ordersFilter === 'paid') return orders.filter((o) => o.paid);
+    if (ordersFilter === 'mesa') return orders.filter((o) => o.orderType === 'Mesa');
+    if (ordersFilter === 'llevar') return orders.filter((o) => o.orderType !== 'Mesa');
     return orders;
   }, [orders, ordersFilter]);
 
@@ -326,7 +296,7 @@ export default function AdminBillingPage() {
           <span style={styles.authKicker}>CAFETERÍA MARÍA BONITA</span>
           <h2 style={styles.authTitle}>Acceso de Administración</h2>
           <p style={styles.authSubtitle}>
-            Panel confidencial de contabilización de pedidos y comisiones de plataforma para el dueño del restaurante.
+            Panel de control de suscripción mensual, facturación y comandas para el dueño del restaurante.
           </p>
 
           <form onSubmit={handleLogin} style={styles.authForm}>
@@ -351,7 +321,7 @@ export default function AdminBillingPage() {
             />
             {pinError && (
               <p style={styles.authErrorMsg}>
-                ⚠️ PIN incorrecto. (PIN predeterminado configurado en menuData: {billingConfig.ownerPin})
+                ⚠️ PIN incorrecto. (PIN configurado en billing.json: {billingConfig.ownerPin})
               </p>
             )}
 
@@ -370,6 +340,9 @@ export default function AdminBillingPage() {
     );
   }
 
+  const monthlyFee = subStatus?.monthlyFee || billingConfig.monthlyFee || 300;
+  const paymentInfo = subStatus?.paymentInfo || billingConfig.paymentInfo || {};
+
   return (
     <div style={styles.dashboardContainer}>
       {/* Barra Superior del Panel */}
@@ -379,7 +352,7 @@ export default function AdminBillingPage() {
             ☕ <strong>{BUSINESS_DATA.brand?.name || 'María Bonita'}</strong>
           </div>
           <span style={styles.headerDivider}>|</span>
-          <span style={styles.headerPortalTag}>Portal de Facturación & Comisiones</span>
+          <span style={styles.headerPortalTag}>Portal de Suscripción & Facturación Mensual</span>
         </div>
 
         <div style={styles.headerRight}>
@@ -396,11 +369,9 @@ export default function AdminBillingPage() {
         {/* Banner de bienvenida y aviso del ciclo */}
         <div style={styles.welcomeBanner}>
           <div>
-            <h1 style={styles.bannerTitle}>Control de Pedidos & Liquidación de Plataforma</h1>
+            <h1 style={styles.bannerTitle}>Control de Suscripción & Facturación Mensual</h1>
             <p style={styles.bannerSubtitle}>
-              Tarifa configurada en <strong>menuData</strong>: <strong>${billingConfig.commissionPerOrder} MXN</strong> por
-              cada comanda generada a través del carrito de compras • Cuota mensual:{' '}
-              <strong>${billingConfig.monthlyFee || 249}.00 {billingConfig.currency}</strong>.
+              Cuota fija de plataforma: <strong>${monthlyFee}.00 {billingConfig.currency || 'MXN'} mensuales</strong> • Acceso ilimitado al Menú Digital y recepción de comandas por WhatsApp.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -408,10 +379,10 @@ export default function AdminBillingPage() {
               type="button"
               onClick={handleRenewCycle}
               style={{
-                ...styles.demoOrderBtn,
+                ...styles.actionBtn,
                 background: '#15803d',
               }}
-              title="Registrar pago manual y sumar 1 mes a la fecha de corte"
+              title="Registrar pago mensual SPEI y extender 30 días la fecha de corte"
             >
               🔄 Renovar Ciclo (+30 Días)
             </button>
@@ -419,33 +390,12 @@ export default function AdminBillingPage() {
               type="button"
               onClick={handleToggleSuspension}
               style={{
-                ...styles.demoOrderBtn,
+                ...styles.actionBtn,
                 background: subStatus?.isSuspended ? '#2563eb' : '#dc2626',
-                color: '#ffffff',
               }}
-              title={subStatus?.isSuspended ? "Reactivar pedidos por WhatsApp" : "Pausar pedidos por WhatsApp si el cliente no ha pagado"}
+              title={subStatus?.isSuspended ? "Reactivar pedidos por WhatsApp" : "Pausar pedidos por WhatsApp"}
             >
               {subStatus?.isSuspended ? '▶️ Reactivar Plataforma' : '🛑 Pausar Plataforma (Falta de Pago)'}
-            </button>
-            <button
-              type="button"
-              onClick={handleSendTestWhatsApp}
-              style={{
-                ...styles.demoOrderBtn,
-                background: '#25D366',
-                color: '#ffffff',
-              }}
-              title="Abre WhatsApp con el mensaje oficial de recordatorio y datos SPEI"
-            >
-              📲 Probar Recordatorio WhatsApp
-            </button>
-            <button
-              type="button"
-              onClick={handleAddDemoOrder}
-              style={styles.demoOrderBtn}
-              title="Genera un pedido de prueba"
-            >
-              + Simular Pedido (+${billingConfig.commissionPerOrder} MXN)
             </button>
           </div>
         </div>
@@ -492,7 +442,7 @@ export default function AdminBillingPage() {
                     color: subStatus.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
                   }}
                 >
-                  ESTADO DE SUSCRIPCIÓN • ZONA HORARIA {subStatus.timezone}
+                  ESTADO DE SUSCRIPCIÓN • ZONA HORARIA {subStatus.timezone || 'America/Cancun'}
                 </span>
                 <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.3rem', color: '#1f120a' }}>
                   {subStatus.statusBadgeText}
@@ -526,7 +476,7 @@ export default function AdminBillingPage() {
               </div>
             </div>
 
-            {/* Aviso especial si está en gracia o en modo solo lectura */}
+            {/* Aviso especial si está en alerta o en modo solo lectura */}
             {subStatus.ownerAlert && (
               <div
                 style={{
@@ -572,289 +522,260 @@ export default function AdminBillingPage() {
                 <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
                   🏦 Datos de Transferencia SPEI:
                 </span>
-                <div>Banco: <strong>{subStatus.paymentInfo?.bank || 'BBVA México'}</strong></div>
-                <div>
-                  CLABE:{' '}
+                <div>Banco: <strong>{paymentInfo.bank || 'BBVA México'}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.2rem 0' }}>
+                  <span>CLABE:</span>
                   <code style={{ background: '#ffffff', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
-                    {subStatus.paymentInfo?.clabe || '012180001234567890'}
+                    {paymentInfo.clabe || '012180001234567890'}
                   </code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(paymentInfo.clabe || '012180001234567890', 'clabe')}
+                    style={styles.copySmallBtn}
+                    title="Copiar CLABE"
+                  >
+                    {copiedField === 'clabe' ? '✓ Copiado' : 'Copiar'}
+                  </button>
                 </div>
-                <div>Beneficiario: <strong>{subStatus.paymentInfo?.beneficiary || 'RedaySoft'}</strong></div>
-                <div>Referencia: <strong>{subStatus.paymentInfo?.reference || 'MARIA-BONITA-01'}</strong></div>
+                <div>Beneficiario: <strong>{paymentInfo.beneficiary || 'RedaySoft'}</strong></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+                  <span>Referencia: <strong>{paymentInfo.reference || 'MARIA-BONITA-01'}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(paymentInfo.reference || 'MARIA-BONITA-01', 'ref')}
+                    style={styles.copySmallBtn}
+                    title="Copiar Referencia"
+                  >
+                    {copiedField === 'ref' ? '✓ Copiado' : 'Copiar'}
+                  </button>
+                </div>
               </div>
 
               <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    💳 Pago Rápido en Línea:
+                    💎 Tarifa Mensual Fija:
                   </span>
-                  <div>Cuota mensual: <strong>${subStatus.monthlyFee}.00 {subStatus.currency}</strong></div>
-                  <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '0.2rem' }}>
-                    WhatsApp del dueño: +{subStatus.billingPhone}
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c25428' }}>
+                    ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '0.3rem' }}>
+                    Sin cobro por comanda • Uso libre del menú digital
                   </div>
                 </div>
-                {subStatus.paymentInfo?.enablePaymentLink && subStatus.paymentInfo?.paymentLink ? (
-                  <a
-                    href={subStatus.paymentInfo.paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      marginTop: '0.75rem',
-                      background: '#635bff',
-                      color: '#ffffff',
-                      textDecoration: 'none',
-                      padding: '0.5rem 0.9rem',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      textAlign: 'center',
-                      fontSize: '0.82rem',
-                    }}
-                  >
-                    Abrir Pasarela de Pago ↗
-                  </a>
-                ) : (
-                  <div
-                    style={{
-                      marginTop: '0.75rem',
-                      background: '#e2e8f0',
-                      color: '#334155',
-                      padding: '0.45rem 0.75rem',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      textAlign: 'center',
-                    }}
-                  >
-                    🏦 Cobro exclusivo vía Transferencia SPEI
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tarjetas de Métricas Principales */}
-        {summary && (
-          <div style={styles.statsGrid}>
-            {/* Card 1: Pedidos Totales */}
-            <div style={styles.statCard}>
-              <div style={styles.statHeader}>
-                <span style={styles.statLabel}>Total Pedidos Plataforma</span>
-                <span style={styles.statIcon}>🛍️</span>
-              </div>
-              <div style={styles.statMainValue}>{summary.totalOrdersCount}</div>
-              <div style={styles.statSubtext}>
-                {summary.unpaidOrdersCount} pendientes de liquidar • {summary.paidOrdersCount} liquidados
-              </div>
-            </div>
-
-            {/* Card 2: Tarifa por Pedido */}
-            <div style={styles.statCard}>
-              <div style={styles.statHeader}>
-                <span style={styles.statLabel}>Comisión por Pedido</span>
-                <span style={styles.statIcon}>🏷️</span>
-              </div>
-              <div style={styles.statMainValue}>${summary.commissionRate}.00 {summary.currency}</div>
-              <div style={styles.statSubtext}>
-                Configurado en <code>menuData.platformBilling</code>
-              </div>
-            </div>
-
-            {/* Card 3: Saldo Pendiente */}
-            <div
-              style={{
-                ...styles.statCard,
-                background: summary.pendingCommissionAmount > 0 ? '#fef3e7' : '#f0fdf4',
-                borderColor: summary.pendingCommissionAmount > 0 ? '#f97316' : '#22c55e',
-              }}
-            >
-              <div style={styles.statHeader}>
-                <span style={styles.statLabel}>Comisión Pendiente de Pago</span>
-                <span style={styles.statIcon}>💳</span>
-              </div>
-              <div
-                style={{
-                  ...styles.statMainValue,
-                  color: summary.pendingCommissionAmount > 0 ? '#c2410c' : '#15803d',
-                }}
-              >
-                {formatMoney(summary.pendingCommissionAmount)} {summary.currency}
-              </div>
-              <div style={styles.statSubtext}>
-                Correspondiente a {summary.unpaidOrdersCount} pedidos sin liquidar
-              </div>
-            </div>
-
-            {/* Card 4: Ciclo de Facturación (Límite Máximo Mensual) */}
-            <div style={styles.statCard}>
-              <div style={styles.statHeader}>
-                <span style={styles.statLabel}>Límite Máximo de Pago</span>
-                <span style={styles.statIcon}>⏳</span>
-              </div>
-              <div style={styles.statMainValue}>
-                {summary.daysRemaining} <span style={{ fontSize: '1rem', fontWeight: 600 }}>días restantes</span>
-              </div>
-              <div style={styles.statSubtext}>
-                Corte cada 30 días • Fecha límite: {new Date(summary.nextDueDate).toLocaleDateString('es-MX')}
-              </div>
-              {/* Barra de progreso mensual */}
-              <div style={styles.progressBarBg}>
                 <div
                   style={{
-                    ...styles.progressBarFill,
-                    width: `${Math.min(100, Math.max(10, ((30 - summary.daysRemaining) / 30) * 100))}%`,
-                    background: summary.daysRemaining <= 5 ? '#ef4444' : '#c25428',
-                  }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Notificación de Pago Exitoso */}
-        {paymentSuccessReceipt && (
-          <div style={styles.successAlert}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1.8rem' }}>🎉</span>
-              <div>
-                <strong style={{ display: 'block', fontSize: '1.1rem', color: '#166534' }}>
-                  ¡Liquidación procesada con éxito a través de Stripe!
-                </strong>
-                <span style={{ fontSize: '0.9rem', color: '#15803d' }}>
-                  Folio: <strong>{paymentSuccessReceipt.folio}</strong> • Importe debitado:{' '}
-                  <strong>{formatMoney(paymentSuccessReceipt.totalPaid)} MXN</strong> ({paymentSuccessReceipt.ordersCount}{' '}
-                  pedidos liquidados).
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedReceiptForModal(paymentSuccessReceipt)}
-              style={styles.viewReceiptBtn}
-            >
-              📄 Ver Comprobante
-            </button>
-          </div>
-        )}
-
-        <div style={styles.twoColLayout}>
-          {/* Columna Izquierda: Pasarela de Pago con Stripe */}
-          <section style={styles.stripeCardSection}>
-            <div style={styles.sectionHeaderStripe}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <span style={styles.stripeLogoText}>stripe</span>
-                <span style={styles.stripeSubTag}>Pasarela de Pago Segura</span>
-              </div>
-              <span style={styles.sslBadge}>🔒 Cifrado SSL de 256 bits</span>
-            </div>
-
-            <div style={styles.stripeBody}>
-              <div style={styles.amountBreakdown}>
-                <div style={styles.amountLine}>
-                  <span>Pedidos pendientes de liquidar:</span>
-                  <strong>{summary?.unpaidOrdersCount || 0} pedidos</strong>
-                </div>
-                <div style={styles.amountLine}>
-                  <span>Comisión fija por comanda:</span>
-                  <strong>${summary?.commissionRate || 3}.00 MXN</strong>
-                </div>
-                <div style={styles.amountLine}>
-                  <span>Periodo de facturación:</span>
-                  <span>Mensual (Límite 30 días)</span>
-                </div>
-                <div style={styles.amountLineTotal}>
-                  <span>Total a Liquidar:</span>
-                  <span style={styles.totalAccent}>{formatMoney(summary?.pendingCommissionAmount || 0)} MXN</span>
-                </div>
-              </div>
-
-              {/* Formulario de Pago */}
-              <form onSubmit={handlePayWithStripe} style={styles.paymentForm}>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Titular de la Tarjeta / Negocio:</label>
-                  <input
-                    type="text"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    style={styles.formInput}
-                    placeholder="Nombre como aparece en la tarjeta"
-                    required
-                  />
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Número de Tarjeta (Stripe Test / Prod):</label>
-                  <input
-                    type="text"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    style={styles.formInput}
-                    placeholder="4242 4242 4242 4242"
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Vencimiento:</label>
-                    <input
-                      type="text"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      style={styles.formInput}
-                      placeholder="MM/AA"
-                      required
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>CVC / CVV:</label>
-                    <input
-                      type="password"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      style={styles.formInput}
-                      placeholder="123"
-                      maxLength={4}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isProcessingPayment || (summary?.pendingCommissionAmount || 0) <= 0}
-                  style={{
-                    ...styles.payButton,
-                    opacity: isProcessingPayment || (summary?.pendingCommissionAmount || 0) <= 0 ? 0.6 : 1,
-                    cursor:
-                      isProcessingPayment || (summary?.pendingCommissionAmount || 0) <= 0 ? 'not-allowed' : 'pointer',
+                    marginTop: '0.75rem',
+                    background: '#e2e8f0',
+                    color: '#334155',
+                    padding: '0.45rem 0.75rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    textAlign: 'center',
                   }}
                 >
-                  {isProcessingPayment ? (
-                    <span>Procesando pago con Stripe... ⏳</span>
-                  ) : (summary?.pendingCommissionAmount || 0) <= 0 ? (
-                    <span>✅ No hay comisiones pendientes</span>
-                  ) : (
-                    <span>
-                      💳 Pagar {formatMoney(summary.pendingCommissionAmount)} MXN con Stripe
-                    </span>
-                  )}
-                </button>
-              </form>
-
-              <div style={styles.stripeNote}>
-                ℹ️ <strong>Flexibilidad de pago:</strong> Puedes liquidar en cualquier momento que lo desees o esperar al
-                corte mensual (máximo cada 30 días). Los fondos son transferidos directamente a la cuenta de la plataforma.
+                  🏦 Liquidación exclusiva vía Transferencia SPEI
+                </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tarjetas de Métricas Principales (Adaptadas al modelo mensual) */}
+        <div style={styles.statsGrid}>
+          {/* Card 1: Cuota Mensual Fija */}
+          <div style={styles.statCard}>
+            <div style={styles.statHeader}>
+              <span style={styles.statLabel}>Cuota Mensual del Servicio</span>
+              <span style={styles.statIcon}>💎</span>
+            </div>
+            <div style={styles.statMainValue}>${monthlyFee}.00 {billingConfig.currency || 'MXN'}</div>
+            <div style={styles.statSubtext}>
+              Membresía fija mensual • Sin comisiones por pedido
+            </div>
+          </div>
+
+          {/* Card 2: Estado del Servicio */}
+          <div
+            style={{
+              ...styles.statCard,
+              background: subStatus?.canSendWhatsappOrder ? '#ffffff' : '#fef2f2',
+              borderColor: subStatus?.canSendWhatsappOrder ? '#e5e7eb' : '#fca5a5',
+            }}
+          >
+            <div style={styles.statHeader}>
+              <span style={styles.statLabel}>Estado de la Plataforma</span>
+              <span style={styles.statIcon}>{subStatus?.canSendWhatsappOrder ? '🟢' : '🔴'}</span>
+            </div>
+            <div
+              style={{
+                ...styles.statMainValue,
+                color: subStatus?.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
+              }}
+            >
+              {subStatus?.canSendWhatsappOrder ? 'Pedidos Activos' : 'Modo Solo Lectura'}
+            </div>
+            <div style={styles.statSubtext}>
+              {subStatus?.canSendWhatsappOrder
+                ? 'Los clientes pueden ordenar por WhatsApp'
+                : 'Pedidos pausados por falta de pago'}
+            </div>
+          </div>
+
+          {/* Card 3: Próximo Corte Programado */}
+          <div style={styles.statCard}>
+            <div style={styles.statHeader}>
+              <span style={styles.statLabel}>Próximo Corte de Servicio</span>
+              <span style={styles.statIcon}>📅</span>
+            </div>
+            <div style={styles.statMainValue}>
+              {subStatus?.nextBillingDate || '2026-11-28'}
+            </div>
+            <div style={styles.statSubtext}>
+              {subStatus?.daysUntilDue !== undefined ? `${subStatus.daysUntilDue} días restantes de ciclo` : 'Corte cada 30 días'}
+            </div>
+            {/* Barra de progreso mensual */}
+            <div style={styles.progressBarBg}>
+              <div
+                style={{
+                  ...styles.progressBarFill,
+                  width: `${Math.min(100, Math.max(10, ((30 - (subStatus?.daysUntilDue || 0)) / 30) * 100))}%`,
+                  background: (subStatus?.daysUntilDue || 0) <= 3 ? '#ef4444' : '#c25428',
+                }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Card 4: Historial de Mensualidades */}
+          <div style={styles.statCard}>
+            <div style={styles.statHeader}>
+              <span style={styles.statLabel}>Historial de Mensualidades</span>
+              <span style={styles.statIcon}>📑</span>
+            </div>
+            <div style={styles.statMainValue}>
+              {history.length} <span style={{ fontSize: '1rem', fontWeight: 600 }}>pagadas</span>
+            </div>
+            <div style={styles.statSubtext}>
+              {formatMoney(history.reduce((sum, r) => sum + (Number(r.totalPaid) || 0), 0))} MXN abonados a la fecha
+            </div>
+          </div>
+
+          {/* Card 5: Comandas Enviadas por Clientes (Métrica Operativa) */}
+          <div style={styles.statCard}>
+            <div style={styles.statHeader}>
+              <span style={styles.statLabel}>Comandas Recibidas</span>
+              <span style={styles.statIcon}>🛍️</span>
+            </div>
+            <div style={styles.statMainValue}>{orders.length}</div>
+            <div style={styles.statSubtext}>
+              Pedidos totales enviados desde el Menú Digital
+            </div>
+          </div>
+        </div>
+
+        {/* Sección Principal en Dos Columnas: Instrucciones SPEI & Historial de Recibos */}
+        <div style={styles.twoColLayout}>
+          {/* Columna Izquierda: Datos e Instrucciones de Pago SPEI */}
+          <section style={styles.speiCardSection}>
+            <div style={styles.sectionHeaderSpei}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '1.4rem' }}>🏦</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#27170e' }}>
+                    Instrucciones de Pago de Mensualidad
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                    Transferencia Interbancaria SPEI Oficial
+                  </span>
+                </div>
+              </div>
+              <span style={styles.speiBadge}>Vía SPEI</span>
+            </div>
+
+            <div style={styles.speiBody}>
+              <div style={styles.speiHighlightBox}>
+                <span style={{ fontSize: '0.78rem', color: '#8c5936', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Importe Mensual a Transferir:
+                </span>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#c25428', margin: '0.2rem 0' }}>
+                  ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
+                </div>
+                <span style={{ fontSize: '0.8rem', color: '#6b5c52' }}>
+                  Concepto: Membresía Menú Digital María Bonita
+                </span>
+              </div>
+
+              <div style={styles.speiDataGrid}>
+                <div style={styles.speiDataRow}>
+                  <span style={styles.speiLabel}>Banco Receptor:</span>
+                  <strong style={styles.speiVal}>{paymentInfo.bank || 'BBVA México'}</strong>
+                </div>
+
+                <div style={styles.speiDataRow}>
+                  <span style={styles.speiLabel}>CLABE Interbancaria:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <code style={styles.codeVal}>{paymentInfo.clabe || '012180001234567890'}</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(paymentInfo.clabe || '012180001234567890', 'clabe2')}
+                      style={styles.copySmallBtn}
+                    >
+                      {copiedField === 'clabe2' ? '✓ Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={styles.speiDataRow}>
+                  <span style={styles.speiLabel}>Beneficiario:</span>
+                  <strong style={styles.speiVal}>{paymentInfo.beneficiary || 'RedaySoft Soluciones Digitales'}</strong>
+                </div>
+
+                <div style={styles.speiDataRow}>
+                  <span style={styles.speiLabel}>Referencia Obligatoria:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <code style={styles.codeVal}>{paymentInfo.reference || 'MARIA-BONITA-01'}</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(paymentInfo.reference || 'MARIA-BONITA-01', 'ref2')}
+                      style={styles.copySmallBtn}
+                    >
+                      {copiedField === 'ref2' ? '✓ Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.speiNoticeBox}>
+                <span style={{ fontSize: '1.1rem' }}>💡</span>
+                <p style={{ margin: 0, fontSize: '0.825rem', color: '#4a3b32', lineHeight: 1.45 }}>
+                  Una vez realizada tu transferencia SPEI, puedes enviar tu comprobante al administrador por WhatsApp o presionar <strong>"Renovar Ciclo (+30 Días)"</strong> para archivar el pago y extender el servicio de inmediato.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const dataStr = `Banco: ${paymentInfo.bank || 'BBVA México'}\nCLABE: ${paymentInfo.clabe || '012180001234567890'}\nBeneficiario: ${paymentInfo.beneficiary || 'RedaySoft'}\nReferencia: ${paymentInfo.reference || 'MARIA-BONITA-01'}\nMonto: $${monthlyFee}.00 MXN`;
+                  handleCopy(dataStr, 'all_spei');
+                }}
+                style={styles.copyAllBtn}
+              >
+                {copiedField === 'all_spei' ? '✓ ¡Datos Completos Copiados!' : '📋 Copiar Todos los Datos para SPEI'}
+              </button>
             </div>
           </section>
 
           {/* Columna Derecha: Historial de Comprobantes de Pago */}
           <section style={styles.historySection}>
-            <h3 style={styles.sectionHeading}>📜 Recibos y Comprobantes Anteriores</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+              <h3 style={styles.sectionHeading}>📜 Recibos y Comprobantes de Historial</h3>
+              <span style={{ fontSize: '0.8rem', background: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
+                {history.length} Emitidos
+              </span>
+            </div>
             <p style={styles.sectionDesc}>
-              Historial de liquidaciones mensuales procesadas exitosamente por Stripe.
+              Comprobantes de pago de mensualidades registradas para la plataforma.
             </p>
 
             {history.length === 0 ? (
@@ -864,11 +785,14 @@ export default function AdminBillingPage() {
                 {history.map((receipt) => (
                   <div key={receipt.id} style={styles.receiptItem}>
                     <div>
-                      <strong style={{ display: 'block', color: '#27170e' }}>
-                        Factura #{receipt.id} ({receipt.folio})
+                      <strong style={{ display: 'block', color: '#27170e', fontSize: '0.95rem' }}>
+                        Comprobante #{receipt.id} ({receipt.folio})
                       </strong>
-                      <span style={{ fontSize: '0.8rem', color: '#6b5c52' }}>
-                        📅 {new Date(receipt.date).toLocaleDateString('es-MX')} • {receipt.ordersCount} pedidos liquidados
+                      <span style={{ fontSize: '0.8rem', color: '#6b5c52', display: 'block', marginTop: '0.15rem' }}>
+                        📅 {new Date(receipt.date).toLocaleDateString('es-MX')} • {receipt.period || 'Membresía Mensual'}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-block', marginTop: '0.2rem' }}>
+                        ✓ {receipt.status || 'Aprobado y Liquidado'} ({receipt.paymentMethod || 'SPEI'})
                       </span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -878,7 +802,7 @@ export default function AdminBillingPage() {
                         onClick={() => setSelectedReceiptForModal(receipt)}
                         style={styles.receiptDetailBtn}
                       >
-                        Ver Detalle
+                        📄 Ver Recibo
                       </button>
                     </div>
                   </div>
@@ -888,14 +812,13 @@ export default function AdminBillingPage() {
           </section>
         </div>
 
-        {/* Tabla Detallada de Pedidos Registrados */}
+        {/* Tabla Detallada de Pedidos Registrados (Métrica Operativa sin comisiones) */}
         <section style={styles.tableSection}>
           <div style={styles.tableHeaderRow}>
             <div>
-              <h3 style={styles.sectionHeading}>📋 Registro de Comandas desde el Carrito de Compras</h3>
+              <h3 style={styles.sectionHeading}>📋 Registro de Comandas Recibidas desde el Menú Digital</h3>
               <p style={styles.sectionDesc}>
-                Cada pedido enviado por los clientes mediante el botón de WhatsApp se contabiliza aquí de forma
-                inmutable.
+                Historial de pedidos que los comensales han generado a través del carrito de compras y WhatsApp.
               </p>
             </div>
 
@@ -910,29 +833,29 @@ export default function AdminBillingPage() {
                   color: ordersFilter === 'all' ? '#ffffff' : '#27170e',
                 }}
               >
-                Todos ({orders.length})
+                Todas ({orders.length})
               </button>
               <button
                 type="button"
-                onClick={() => setOrdersFilter('unpaid')}
+                onClick={() => setOrdersFilter('mesa')}
                 style={{
                   ...styles.filterBtn,
-                  background: ordersFilter === 'unpaid' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'unpaid' ? '#ffffff' : '#27170e',
+                  background: ordersFilter === 'mesa' ? '#c25428' : '#ffffff',
+                  color: ordersFilter === 'mesa' ? '#ffffff' : '#27170e',
                 }}
               >
-                Pendientes ({summary?.unpaidOrdersCount || 0})
+                Consumo en Mesa ({orders.filter((o) => o.orderType === 'Mesa').length})
               </button>
               <button
                 type="button"
-                onClick={() => setOrdersFilter('paid')}
+                onClick={() => setOrdersFilter('llevar')}
                 style={{
                   ...styles.filterBtn,
-                  background: ordersFilter === 'paid' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'paid' ? '#ffffff' : '#27170e',
+                  background: ordersFilter === 'llevar' ? '#c25428' : '#ffffff',
+                  color: ordersFilter === 'llevar' ? '#ffffff' : '#27170e',
                 }}
               >
-                Liquidados ({summary?.paidOrdersCount || 0})
+                Para Llevar ({orders.filter((o) => o.orderType !== 'Mesa').length})
               </button>
             </div>
           </div>
@@ -941,13 +864,13 @@ export default function AdminBillingPage() {
             <table style={styles.ordersTable}>
               <thead>
                 <tr>
-                  <th style={styles.th}>Folio / ID</th>
+                  <th style={styles.th}>Folio</th>
                   <th style={styles.th}>Fecha & Hora</th>
-                  <th style={styles.th}>Servicio</th>
+                  <th style={styles.th}>Modalidad</th>
                   <th style={styles.th}>Mesa / Cliente</th>
-                  <th style={styles.th}>Venta Restaurante</th>
-                  <th style={styles.th}>Comisión Plataforma</th>
-                  <th style={styles.th}>Estatus Comisión</th>
+                  <th style={styles.th}>Comanda / Detalle</th>
+                  <th style={styles.th}>Total de Cuenta</th>
+                  <th style={styles.th}>Canal</th>
                 </tr>
               </thead>
               <tbody>
@@ -962,7 +885,6 @@ export default function AdminBillingPage() {
                     <tr key={ord.id} style={styles.tr}>
                       <td style={styles.td}>
                         <strong>#{ord.folio}</strong>
-                        <span style={{ display: 'block', fontSize: '0.72rem', color: '#999' }}>{ord.id}</span>
                       </td>
                       <td style={styles.td}>
                         {new Date(ord.createdAt).toLocaleDateString('es-MX', {
@@ -979,20 +901,14 @@ export default function AdminBillingPage() {
                         <span style={styles.orderTypeTag}>{ord.orderType}</span>
                       </td>
                       <td style={styles.td}>{ord.customerRef}</td>
-                      <td style={styles.td}>
-                        <strong>{formatMoney(ord.orderTotal)}</strong>
+                      <td style={{ ...styles.td, maxWidth: '280px', fontSize: '0.8rem', color: '#555' }}>
+                        {ord.itemsSummary || `${ord.itemsCount || 1} artículos`}
                       </td>
                       <td style={styles.td}>
-                        <span style={{ fontWeight: 700, color: '#c25428' }}>
-                          ${ord.commissionAmount || billingConfig.commissionPerOrder}.00 MXN
-                        </span>
+                        <strong style={{ color: '#27170e' }}>{formatMoney(ord.orderTotal)}</strong>
                       </td>
                       <td style={styles.td}>
-                        {ord.paid ? (
-                          <span style={styles.badgePaid}>✓ Liquidado ({ord.paymentId})</span>
-                        ) : (
-                          <span style={styles.badgePending}>⏳ Pendiente de Pago</span>
-                        )}
+                        <span style={styles.badgePaid}>📲 Enviado a WhatsApp</span>
                       </td>
                     </tr>
                   ))
@@ -1003,13 +919,13 @@ export default function AdminBillingPage() {
         </section>
       </main>
 
-      {/* Modal de Detalle de Recibo de Pago */}
+      {/* Modal de Detalle de Recibo de Pago Mensual */}
       {selectedReceiptForModal && (
         <div style={styles.modalOverlay} onClick={() => setSelectedReceiptForModal(null)}>
           <div style={styles.receiptModalCard} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#27170e' }}>
-                📄 Comprobante de Liquidación Stripe
+                📄 Comprobante Oficial de Mensualidad
               </h3>
               <button
                 type="button"
@@ -1022,12 +938,14 @@ export default function AdminBillingPage() {
 
             <div style={styles.receiptModalBody}>
               <div style={styles.receiptWatermarkBox}>
-                <span style={{ fontSize: '0.85rem', color: '#c25428', fontWeight: 800 }}>REDAYSOFT PLATFORM</span>
-                <h2 style={{ margin: '0.2rem 0', fontSize: '1.5rem', color: '#27170e' }}>
-                  Recibo de Liquidación
+                <span style={{ fontSize: '0.85rem', color: '#c25428', fontWeight: 800, letterSpacing: '1px' }}>
+                  REDAYSOFT SOLUCIONES DIGITALES
+                </span>
+                <h2 style={{ margin: '0.3rem 0', fontSize: '1.5rem', color: '#27170e' }}>
+                  Recibo de Mensualidad
                 </h2>
                 <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                  Folio Fiscal: <strong>{selectedReceiptForModal.folio}</strong>
+                  Folio de Comprobante: <strong>{selectedReceiptForModal.folio}</strong>
                 </span>
               </div>
 
@@ -1037,30 +955,44 @@ export default function AdminBillingPage() {
                   <p style={styles.receiptMetaVal}>{BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</p>
                 </div>
                 <div>
-                  <span style={styles.receiptMetaLabel}>Fecha de Operación:</span>
+                  <span style={styles.receiptMetaLabel}>Fecha de Liquidación:</span>
                   <p style={styles.receiptMetaVal}>
-                    {new Date(selectedReceiptForModal.date).toLocaleString('es-MX')}
+                    {new Date(selectedReceiptForModal.date).toLocaleDateString('es-MX', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
                   </p>
                 </div>
                 <div>
                   <span style={styles.receiptMetaLabel}>Método de Pago:</span>
-                  <p style={styles.receiptMetaVal}>{selectedReceiptForModal.paymentMethod}</p>
+                  <p style={styles.receiptMetaVal}>{selectedReceiptForModal.paymentMethod || 'Transferencia SPEI'}</p>
                 </div>
                 <div>
-                  <span style={styles.receiptMetaLabel}>Comprobante:</span>
+                  <span style={styles.receiptMetaLabel}>Número de Recibo:</span>
                   <p style={styles.receiptMetaVal}>{selectedReceiptForModal.id}</p>
                 </div>
               </div>
 
-              <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '1rem 0' }} />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span>Comisiones por pedido ({selectedReceiptForModal.ordersCount} comandas x ${selectedReceiptForModal.commissionPerOrder}.00 MXN):</span>
-                <strong>{formatMoney(selectedReceiptForModal.totalPaid)} MXN</strong>
+              <div style={{ background: '#fbf9f6', padding: '0.85rem 1rem', borderRadius: '10px', margin: '1rem 0', border: '1px solid #ebd9c5' }}>
+                <span style={{ fontSize: '0.78rem', color: '#8c5936', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Concepto de Facturación:
+                </span>
+                <p style={{ margin: '0.2rem 0 0 0', fontWeight: 700, color: '#27170e', fontSize: '0.9rem' }}>
+                  {selectedReceiptForModal.concept || 'Cuota Mensual Mantenimiento & Menú Digital'}
+                </p>
+                <span style={{ fontSize: '0.78rem', color: '#666' }}>
+                  {selectedReceiptForModal.period || 'Membresía Activa'}
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                <span>Subtotal cuota mensual:</span>
+                <strong>{formatMoney((selectedReceiptForModal.totalPaid || monthlyFee) / 1.16)} MXN</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                 <span>Impuesto IVA (16% incluido):</span>
-                <span>{formatMoney((selectedReceiptForModal.totalPaid * 0.16) / 1.16)} MXN</span>
+                <span>{formatMoney(((selectedReceiptForModal.totalPaid || monthlyFee) * 0.16) / 1.16)} MXN</span>
               </div>
               <div
                 style={{
@@ -1068,11 +1000,16 @@ export default function AdminBillingPage() {
                   justifyContent: 'space-between',
                   paddingTop: '0.75rem',
                   borderTop: '2px solid #27170e',
-                  fontSize: '1.2rem',
+                  fontSize: '1.25rem',
+                  marginTop: '0.5rem',
                 }}
               >
                 <strong>Total Pagado:</strong>
-                <strong style={{ color: '#c25428' }}>{formatMoney(selectedReceiptForModal.totalPaid)} MXN</strong>
+                <strong style={{ color: '#c25428' }}>{formatMoney(selectedReceiptForModal.totalPaid || monthlyFee)} MXN</strong>
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: '1.25rem', padding: '0.5rem', background: '#dcfce7', borderRadius: '8px', color: '#166534', fontSize: '0.85rem', fontWeight: 700 }}>
+                ✓ {selectedReceiptForModal.status || 'Aprobado y Liquidado'}
               </div>
             </div>
 
@@ -1082,7 +1019,7 @@ export default function AdminBillingPage() {
                 onClick={() => window.print()}
                 style={styles.printBtn}
               >
-                🖨️ Imprimir Recibo
+                🖨️ Imprimir / Guardar PDF
               </button>
               <button
                 type="button"
@@ -1352,7 +1289,7 @@ export default function AdminBillingPage() {
   );
 }
 
-// Estilos limpios y profesionales
+// Estilos limpios y profesionales adaptados al modelo de suscripción mensual
 const styles = {
   authContainer: {
     minHeight: '100vh',
@@ -1361,47 +1298,45 @@ const styles = {
     justifyContent: 'center',
     background: 'linear-gradient(135deg, #1f120a 0%, #3d2315 100%)',
     padding: '1.5rem',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   authCard: {
     background: '#ffffff',
-    borderRadius: '20px',
+    borderRadius: '18px',
+    padding: '2.5rem',
     maxWidth: '440px',
     width: '100%',
-    padding: '2.5rem 2rem',
     boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
     textAlign: 'center',
   },
   authIconWrap: {
-    width: '64px',
-    height: '64px',
+    width: '56px',
+    height: '56px',
     background: '#fef3e7',
     borderRadius: '50%',
-    display: 'inline-flex',
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '1.8rem',
-    marginBottom: '1rem',
+    fontSize: '1.6rem',
+    margin: '0 auto 1rem',
   },
   authKicker: {
-    display: 'block',
     fontSize: '0.75rem',
-    letterSpacing: '0.12em',
     fontWeight: 800,
     color: '#c25428',
-    marginBottom: '0.4rem',
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
   },
   authTitle: {
-    fontSize: '1.5rem',
-    color: '#1f120a',
-    margin: '0 0 0.5rem 0',
-    fontWeight: 800,
+    margin: '0.3rem 0 0.6rem',
+    color: '#27170e',
+    fontFamily: 'var(--font-serif)',
+    fontSize: '1.6rem',
   },
   authSubtitle: {
-    fontSize: '0.88rem',
     color: '#6b5c52',
+    fontSize: '0.85rem',
     lineHeight: 1.5,
-    marginBottom: '1.75rem',
+    marginBottom: '1.5rem',
   },
   authForm: {
     textAlign: 'left',
@@ -1409,75 +1344,73 @@ const styles = {
   authLabel: {
     display: 'block',
     fontSize: '0.85rem',
-    fontWeight: 700,
+    fontWeight: 600,
     color: '#27170e',
     marginBottom: '0.5rem',
   },
   authInput: {
     width: '100%',
-    padding: '0.85rem 1rem',
-    fontSize: '1.15rem',
-    borderRadius: '10px',
-    border: '2px solid #d1c7bc',
+    padding: '0.75rem 1rem',
+    border: '1.5px solid #d1c7bc',
+    borderRadius: '8px',
+    fontSize: '1.1rem',
     textAlign: 'center',
-    letterSpacing: '0.3em',
+    letterSpacing: '0.2em',
     outline: 'none',
     boxSizing: 'border-box',
-    marginBottom: '0.5rem',
+    marginBottom: '0.75rem',
   },
   authErrorMsg: {
-    fontSize: '0.78rem',
-    color: '#dc2626',
-    margin: '0 0 1rem 0',
-    lineHeight: 1.4,
+    color: '#ef4444',
+    fontSize: '0.8rem',
+    margin: '0 0 1rem',
+    textAlign: 'center',
   },
   authSubmitBtn: {
     width: '100%',
-    padding: '0.9rem',
+    padding: '0.85rem',
     background: '#c25428',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '10px',
-    fontSize: '1rem',
+    borderRadius: '8px',
     fontWeight: 700,
+    fontSize: '0.95rem',
     cursor: 'pointer',
-    marginTop: '0.75rem',
     transition: 'background 0.2s',
   },
   authFooter: {
     marginTop: '1.5rem',
     paddingTop: '1rem',
-    borderTop: '1px solid #f0eae4',
+    borderTop: '1px solid #f0ebe4',
   },
   authBackLink: {
-    fontSize: '0.85rem',
-    color: '#6b5c52',
+    color: '#8c5936',
     textDecoration: 'none',
+    fontSize: '0.85rem',
     fontWeight: 600,
   },
 
-  // Dashboard
+  // Panel Principal
   dashboardContainer: {
     minHeight: '100vh',
-    background: '#fdfbf7',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    background: '#f7f4ef',
     color: '#27170e',
+    fontFamily: 'var(--font-sans)',
   },
   headerBar: {
     background: '#ffffff',
-    borderBottom: '1px solid #eee7df',
-    padding: '1rem 2rem',
+    borderBottom: '1px solid #e8e2d8',
+    padding: '0.85rem 2rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: '1rem',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
   },
   headerLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.85rem',
+    gap: '0.75rem',
   },
   brandBadge: {
     fontSize: '1.1rem',
@@ -1488,11 +1421,11 @@ const styles = {
   },
   headerPortalTag: {
     fontSize: '0.85rem',
-    fontWeight: 700,
-    color: '#c25428',
+    color: '#8c5936',
+    fontWeight: 600,
     background: '#fef3e7',
-    padding: '0.25rem 0.65rem',
-    borderRadius: '9999px',
+    padding: '0.2rem 0.6rem',
+    borderRadius: '6px',
   },
   headerRight: {
     display: 'flex',
@@ -1500,106 +1433,121 @@ const styles = {
     gap: '0.75rem',
   },
   viewMenuBtn: {
-    textDecoration: 'none',
-    fontSize: '0.85rem',
-    fontWeight: 700,
+    background: '#f4ede4',
     color: '#27170e',
-    background: '#f4ece4',
-    padding: '0.5rem 1rem',
-    borderRadius: '8px',
-  },
-  logoutBtn: {
-    background: 'transparent',
-    border: '1px solid #d1c7bc',
-    color: '#6b5c52',
+    textDecoration: 'none',
     padding: '0.5rem 0.9rem',
     borderRadius: '8px',
     fontSize: '0.85rem',
     fontWeight: 600,
-    cursor: 'pointer',
+    border: '1px solid #e0d5c7',
   },
+  logoutBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#888',
+    fontSize: '0.85rem',
+    cursor: 'pointer',
+    padding: '0.5rem',
+  },
+
   mainContent: {
-    maxWidth: '1200px',
+    maxWidth: '1280px',
     margin: '0 auto',
     padding: '2rem 1.5rem',
   },
+
   welcomeBanner: {
     background: '#ffffff',
-    border: '1px solid #eee7df',
     borderRadius: '16px',
     padding: '1.75rem 2rem',
+    marginBottom: '1.75rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: '1rem',
-    marginBottom: '2rem',
-    boxShadow: '0 4px 20px rgba(50,25,12,0.04)',
+    gap: '1.25rem',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+    border: '1px solid #ebd9c5',
   },
   bannerTitle: {
     margin: 0,
-    fontSize: '1.5rem',
-    color: '#1f120a',
-    fontWeight: 800,
+    fontSize: '1.6rem',
+    fontFamily: 'var(--font-serif)',
+    color: '#27170e',
   },
   bannerSubtitle: {
-    margin: '0.4rem 0 0 0',
+    margin: '0.35rem 0 0 0',
     color: '#6b5c52',
-    fontSize: '0.925rem',
+    fontSize: '0.9rem',
   },
-  demoOrderBtn: {
-    background: '#1f120a',
+  actionBtn: {
     color: '#ffffff',
     border: 'none',
-    padding: '0.7rem 1.2rem',
+    padding: '0.65rem 1.25rem',
     borderRadius: '10px',
     fontSize: '0.85rem',
     fontWeight: 700,
     cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+    transition: 'transform 0.15s, opacity 0.15s',
   },
+  copySmallBtn: {
+    background: '#ffffff',
+    border: '1px solid #d1c7bc',
+    padding: '0.15rem 0.5rem',
+    borderRadius: '4px',
+    fontSize: '0.75rem',
+    cursor: 'pointer',
+    color: '#8c5936',
+    fontWeight: 700,
+  },
+
+  // Stats Grid
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
     gap: '1.25rem',
     marginBottom: '2rem',
   },
   statCard: {
     background: '#ffffff',
-    border: '1px solid #eee7df',
     borderRadius: '14px',
-    padding: '1.5rem',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+    padding: '1.25rem 1.4rem',
+    border: '1px solid #e8e2d8',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
   },
   statHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: '0.75rem',
+    marginBottom: '0.6rem',
   },
   statLabel: {
-    fontSize: '0.82rem',
+    fontSize: '0.78rem',
     fontWeight: 700,
     color: '#6b5c52',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.04em',
   },
   statIcon: {
-    fontSize: '1.25rem',
+    fontSize: '1.2rem',
   },
   statMainValue: {
-    fontSize: '1.9rem',
+    fontSize: '1.65rem',
     fontWeight: 800,
-    color: '#1f120a',
-    marginBottom: '0.35rem',
+    color: '#27170e',
+    margin: '0.2rem 0',
   },
   statSubtext: {
     fontSize: '0.78rem',
-    color: '#8b7c72',
-    lineHeight: 1.4,
+    color: '#888',
+    marginTop: '0.25rem',
   },
   progressBarBg: {
+    width: '100%',
     height: '6px',
-    background: '#eee7df',
+    background: '#eee',
     borderRadius: '9999px',
     marginTop: '0.75rem',
     overflow: 'hidden',
@@ -1607,203 +1555,171 @@ const styles = {
   progressBarFill: {
     height: '100%',
     borderRadius: '9999px',
-    transition: 'width 0.3s ease',
   },
-  successAlert: {
-    background: '#ecfdf5',
-    border: '1px solid #86efac',
-    borderRadius: '12px',
-    padding: '1.25rem 1.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: '1rem',
-    marginBottom: '2rem',
-  },
-  viewReceiptBtn: {
-    background: '#15803d',
-    color: '#ffffff',
-    border: 'none',
-    padding: '0.6rem 1.2rem',
-    borderRadius: '8px',
-    fontWeight: 700,
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-  },
+
+  // Layout 2 Columnas
   twoColLayout: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-    gap: '1.5rem',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+    gap: '1.75rem',
     marginBottom: '2.5rem',
   },
-  stripeCardSection: {
+
+  // Columna SPEI
+  speiCardSection: {
     background: '#ffffff',
-    border: '1px solid #eee7df',
     borderRadius: '16px',
+    border: '1px solid #ebd9c5',
+    boxShadow: '0 4px 25px rgba(0,0,0,0.03)',
     overflow: 'hidden',
-    boxShadow: '0 4px 20px rgba(50,25,12,0.04)',
   },
-  sectionHeaderStripe: {
-    background: '#635bff',
+  sectionHeaderSpei: {
+    background: '#fbf9f6',
+    padding: '1.1rem 1.5rem',
+    borderBottom: '1px solid #ebd9c5',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  speiBadge: {
+    background: '#15803d',
     color: '#ffffff',
-    padding: '1.25rem 1.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  stripeLogoText: {
-    fontSize: '1.6rem',
-    fontWeight: 800,
-    letterSpacing: '-0.04em',
-  },
-  stripeSubTag: {
-    fontSize: '0.78rem',
-    background: 'rgba(255,255,255,0.2)',
-    padding: '0.2rem 0.5rem',
-    borderRadius: '4px',
-    marginLeft: '0.4rem',
-  },
-  sslBadge: {
     fontSize: '0.75rem',
-    opacity: 0.9,
-  },
-  stripeBody: {
-    padding: '1.75rem 1.5rem',
-  },
-  amountBreakdown: {
-    background: '#f8fafc',
-    borderRadius: '12px',
-    padding: '1.2rem',
-    border: '1px solid #e2e8f0',
-    marginBottom: '1.5rem',
-  },
-  amountLine: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.88rem',
-    color: '#475569',
-    marginBottom: '0.5rem',
-  },
-  amountLineTotal: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontSize: '1.1rem',
     fontWeight: 800,
-    color: '#0f172a',
-    paddingTop: '0.75rem',
-    borderTop: '1px solid #cbd5e1',
-    marginTop: '0.5rem',
+    padding: '0.25rem 0.65rem',
+    borderRadius: '9999px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
-  totalAccent: {
-    color: '#635bff',
-    fontSize: '1.35rem',
+  speiBody: {
+    padding: '1.5rem',
   },
-  paymentForm: {
+  speiHighlightBox: {
+    background: '#faf6f0',
+    border: '1px solid #ebd9c5',
+    borderRadius: '12px',
+    padding: '1.25rem',
+    textAlign: 'center',
+    marginBottom: '1.25rem',
+  },
+  speiDataGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.85rem',
+    gap: '0.75rem',
+    fontSize: '0.85rem',
+    marginBottom: '1.25rem',
   },
-  formGroup: {
+  speiDataRow: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '0.35rem',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: '0.5rem',
+    borderBottom: '1px solid #f1ece6',
   },
-  formLabel: {
-    fontSize: '0.78rem',
+  speiLabel: {
+    color: '#6b5c52',
+    fontWeight: 600,
+  },
+  speiVal: {
+    color: '#27170e',
+  },
+  codeVal: {
+    background: '#f4ede4',
+    padding: '0.2rem 0.45rem',
+    borderRadius: '6px',
     fontWeight: 700,
-    color: '#475569',
+    fontSize: '0.85rem',
+    color: '#1f120a',
   },
-  formInput: {
-    padding: '0.75rem 0.9rem',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.925rem',
-    boxSizing: 'border-box',
-    outline: 'none',
+  speiNoticeBox: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '0.6rem',
+    background: '#fef9ee',
+    border: '1px solid #fed7aa',
+    borderRadius: '10px',
+    padding: '0.85rem 1rem',
+    marginBottom: '1.25rem',
   },
-  payButton: {
-    marginTop: '0.5rem',
-    background: 'linear-gradient(135deg, #635bff 0%, #4338ca 100%)',
+  copyAllBtn: {
+    width: '100%',
+    padding: '0.85rem',
+    background: '#c25428',
     color: '#ffffff',
     border: 'none',
     borderRadius: '10px',
-    padding: '1rem',
-    fontSize: '1rem',
+    fontSize: '0.9rem',
     fontWeight: 700,
-    boxShadow: '0 4px 15px rgba(99,91,255,0.3)',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
   },
-  stripeNote: {
-    fontSize: '0.78rem',
-    color: '#64748b',
-    marginTop: '1.25rem',
-    lineHeight: 1.5,
-    borderTop: '1px solid #f1f5f9',
-    paddingTop: '0.75rem',
-  },
+
+  // Columna Historial
   historySection: {
     background: '#ffffff',
-    border: '1px solid #eee7df',
     borderRadius: '16px',
-    padding: '1.75rem 1.5rem',
-    boxShadow: '0 4px 20px rgba(50,25,12,0.04)',
+    padding: '1.5rem',
+    border: '1px solid #ebd9c5',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
   },
   sectionHeading: {
+    margin: 0,
     fontSize: '1.25rem',
-    fontWeight: 800,
-    color: '#1f120a',
-    margin: '0 0 0.35rem 0',
+    fontFamily: 'var(--font-serif)',
+    color: '#27170e',
   },
   sectionDesc: {
-    fontSize: '0.85rem',
+    margin: '0.25rem 0 1rem 0',
     color: '#6b5c52',
-    margin: '0 0 1.25rem 0',
+    fontSize: '0.825rem',
   },
   emptyHistory: {
-    padding: '2rem',
     textAlign: 'center',
+    padding: '2.5rem 1rem',
     color: '#999',
-    fontSize: '0.9rem',
-    background: '#fbf8f5',
-    borderRadius: '10px',
+    fontSize: '0.85rem',
   },
   historyList: {
     display: 'flex',
     flexDirection: 'column',
     gap: '0.85rem',
+    maxHeight: '360px',
+    overflowY: 'auto',
   },
   receiptItem: {
-    background: '#fdfbf7',
-    border: '1px solid #eee7df',
-    borderRadius: '10px',
-    padding: '1rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    padding: '0.85rem 1rem',
+    background: '#faf7f2',
+    borderRadius: '10px',
+    border: '1px solid #ebd9c5',
   },
   receiptAmount: {
     display: 'block',
     fontWeight: 800,
-    color: '#15803d',
+    color: '#c25428',
     fontSize: '1rem',
+    marginBottom: '0.25rem',
   },
   receiptDetailBtn: {
-    background: 'transparent',
-    border: 'none',
+    background: '#ffffff',
+    border: '1px solid #c25428',
     color: '#c25428',
+    padding: '0.35rem 0.75rem',
+    borderRadius: '6px',
     fontSize: '0.78rem',
     fontWeight: 700,
     cursor: 'pointer',
-    padding: 0,
-    marginTop: '0.2rem',
   },
+
+  // Tabla de Pedidos
   tableSection: {
     background: '#ffffff',
-    border: '1px solid #eee7df',
     borderRadius: '16px',
-    padding: '1.75rem 1.5rem',
-    boxShadow: '0 4px 20px rgba(50,25,12,0.04)',
+    padding: '1.75rem',
+    border: '1px solid #ebd9c5',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
   },
   tableHeaderRow: {
     display: 'flex',
@@ -1815,15 +1731,19 @@ const styles = {
   },
   filterButtonGroup: {
     display: 'flex',
-    gap: '0.5rem',
+    gap: '0.4rem',
+    background: '#f4ede4',
+    padding: '0.25rem',
+    borderRadius: '8px',
   },
   filterBtn: {
-    border: '1px solid #eee7df',
-    borderRadius: '8px',
+    border: 'none',
     padding: '0.4rem 0.85rem',
+    borderRadius: '6px',
     fontSize: '0.8rem',
     fontWeight: 700,
     cursor: 'pointer',
+    transition: 'all 0.15s',
   },
   tableResponsive: {
     overflowX: 'auto',
@@ -1831,48 +1751,40 @@ const styles = {
   ordersTable: {
     width: '100%',
     borderCollapse: 'collapse',
-    textAlign: 'left',
     fontSize: '0.85rem',
   },
   th: {
+    textAlign: 'left',
     padding: '0.75rem 1rem',
-    background: '#f8f4ee',
+    background: '#faf6f0',
     color: '#6b5c52',
     fontWeight: 700,
     fontSize: '0.75rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    borderBottom: '1px solid #eee7df',
+    letterSpacing: '0.04em',
+    borderBottom: '1px solid #e8e2d8',
   },
   tr: {
-    borderBottom: '1px solid #f4ece4',
+    borderBottom: '1px solid #f0ebe4',
   },
   td: {
-    padding: '0.9rem 1rem',
-    verticalAlign: 'middle',
+    padding: '0.85rem 1rem',
   },
   orderTypeTag: {
-    background: '#f4ece4',
-    padding: '0.25rem 0.55rem',
-    borderRadius: '6px',
-    fontSize: '0.75rem',
+    background: '#fef3e7',
+    color: '#c25428',
+    padding: '0.2rem 0.55rem',
+    borderRadius: '4px',
     fontWeight: 700,
+    fontSize: '0.75rem',
   },
   badgePaid: {
     background: '#dcfce7',
-    color: '#166534',
+    color: '#15803d',
+    padding: '0.25rem 0.6rem',
+    borderRadius: '6px',
     fontWeight: 700,
     fontSize: '0.75rem',
-    padding: '0.25rem 0.65rem',
-    borderRadius: '9999px',
-  },
-  badgePending: {
-    background: '#fef3c7',
-    color: '#92400e',
-    fontWeight: 700,
-    fontSize: '0.75rem',
-    padding: '0.25rem 0.65rem',
-    borderRadius: '9999px',
   },
 
   // Modal Recibo
@@ -1880,7 +1792,7 @@ const styles = {
     position: 'fixed',
     inset: 0,
     background: 'rgba(0,0,0,0.65)',
-    backdropFilter: 'blur(4px)',
+    backdropFilter: 'blur(5px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1889,7 +1801,7 @@ const styles = {
   },
   receiptModalCard: {
     background: '#ffffff',
-    borderRadius: '16px',
+    borderRadius: '20px',
     maxWidth: '520px',
     width: '100%',
     boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
@@ -1913,7 +1825,7 @@ const styles = {
   },
   receiptWatermarkBox: {
     textAlign: 'center',
-    marginBottom: '1.5rem',
+    marginBottom: '1.25rem',
     paddingBottom: '1rem',
     borderBottom: '1px dashed #d1c7bc',
   },
@@ -1952,12 +1864,12 @@ const styles = {
     cursor: 'pointer',
   },
   closeModalBtn: {
-    background: '#e5e7eb',
-    color: '#374151',
+    background: '#eee',
+    color: '#444',
     border: 'none',
     padding: '0.6rem 1.2rem',
     borderRadius: '8px',
-    fontWeight: 700,
+    fontWeight: 600,
     fontSize: '0.85rem',
     cursor: 'pointer',
   },
