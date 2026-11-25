@@ -85,25 +85,31 @@ export default function CartDrawer() {
 
     const brandName = BUSINESS_DATA.brand?.name || 'Cafetería María Bonita';
 
+    const cleanCustomerName = customerName
+      .trim()
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+
     let msg = `¡Hola! Me gustaría hacer un pedido en *${brandName}*:\n\n`;
-    msg += `*Nombre del cliente:* ${customerName.trim()}\n`;
+    msg += `*Cliente:* ${cleanCustomerName}\n`;
 
     if (orderType === 'delivery') {
-      msg += `*Tipo de entrega:* A domicilio\n`;
+      msg += `*Modalidad:* Servicio a domicilio\n`;
       msg += `*Dirección de entrega:* ${deliveryAddress.trim()}\n`;
       if (deliveryNotes.trim()) {
         msg += `*Referencias:* ${deliveryNotes.trim()}\n`;
       }
     } else {
-      msg += `*Tipo de entrega:* Paso a buscar al establecimiento (recoger en barra)\n`;
+      msg += `*Modalidad:* Pasar a recoger a la cafetería\n`;
     }
 
-    msg += `\n*Detalle del pedido:*\n`;
+    msg += `\n*Productos ordenados:*\n`;
 
     cart.forEach((item) => {
-      msg += `- *${item.quantity}x ${item.name}* : ${formatMoney(
+      msg += `- *${item.quantity}x ${item.name}* (${formatMoney(
         (item.finalPrice || item.price) * item.quantity
-      )}\n`;
+      )})\n`;
 
       const opts = item.selectedOptions || {};
       const optionsLines = [];
@@ -116,10 +122,10 @@ export default function CartDrawer() {
         }
       });
       if (optionsLines.length > 0) {
-        msg += `   > _${optionsLines.join(' | ')}_\n`;
+        msg += `  - Opciones: ${optionsLines.join(' | ')}\n`;
       }
       if (item.notes) {
-        msg += `   > _Nota: ${item.notes}_\n`;
+        msg += `  - Nota: ${item.notes}\n`;
       }
     });
 
