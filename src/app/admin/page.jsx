@@ -10,6 +10,11 @@ import {
   processStripePayment,
   addMockOrder,
 } from '../../utils/orderStorage';
+import {
+  evaluateBillingStatus,
+  renewBillingCycle,
+  generateWhatsappReminderMessage,
+} from '../../lib/billingStatus';
 
 export default function AdminBillingPage() {
   const billingConfig = BUSINESS_DATA.platformBilling || {
@@ -32,6 +37,7 @@ export default function AdminBillingPage() {
   const [orders, setOrders] = useState([]);
   const [history, setHistory] = useState([]);
   const [ordersFilter, setOrdersFilter] = useState('all'); // 'all' | 'unpaid' | 'paid'
+  const [subStatus, setSubStatus] = useState(null);
 
   // Estado del pago con Stripe
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -70,6 +76,24 @@ export default function AdminBillingPage() {
     setSummary(getBillingSummary());
     setOrders(getStoredOrders());
     setHistory(getBillingHistory());
+    setSubStatus(evaluateBillingStatus());
+  };
+
+  const handleRenewCycle = () => {
+    const res = renewBillingCycle({ pin: billingConfig.ownerPin, monthsToAdd: 1 });
+    if (res.success) {
+      alert(`✅ ${res.message}`);
+      refreshData();
+    } else {
+      alert(`⚠️ ${res.message}`);
+    }
+  };
+
+  const handleSendTestWhatsApp = () => {
+    if (!subStatus) return;
+    const msg = generateWhatsappReminderMessage(subStatus);
+    const phone = subStatus.billingPhone || '529831226847';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const handleLogin = (e) => {
@@ -207,13 +231,213 @@ export default function AdminBillingPage() {
             <h1 style={styles.bannerTitle}>Control de Pedidos & Liquidación de Plataforma</h1>
             <p style={styles.bannerSubtitle}>
               Tarifa configurada en <strong>menuData</strong>: <strong>${billingConfig.commissionPerOrder} MXN</strong> por
-              cada comanda generada a través del carrito de compras.
+              cada comanda generada a través del carrito de compras • Cuota mensual:{' '}
+              <strong>${billingConfig.monthlyFee || 249}.00 {billingConfig.currency}</strong>.
             </p>
           </div>
-          <button type="button" onClick={handleAddDemoOrder} style={styles.demoOrderBtn} title="Genera un pedido de prueba">
-            + Simular Pedido (+${billingConfig.commissionPerOrder} MXN)
-          </button>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleRenewCycle}
+              style={{
+                ...styles.demoOrderBtn,
+                background: '#15803d',
+              }}
+              title="Registrar pago manual y sumar 1 mes a la fecha de corte"
+            >
+              🔄 Renovar Ciclo (+30 Días)
+            </button>
+            <button
+              type="button"
+              onClick={handleSendTestWhatsApp}
+              style={{
+                ...styles.demoOrderBtn,
+                background: '#25D366',
+                color: '#ffffff',
+              }}
+              title="Abre WhatsApp con el mensaje oficial de recordatorio y datos SPEI"
+            >
+              📲 Probar Recordatorio WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={handleAddDemoOrder}
+              style={styles.demoOrderBtn}
+              title="Genera un pedido de prueba"
+            >
+              + Simular Pedido (+${billingConfig.commissionPerOrder} MXN)
+            </button>
+          </div>
         </div>
+
+        {/* Tarjeta de Control de Suscripción & Datos SPEI */}
+        {subStatus && (
+          <div
+            style={{
+              background: subStatus.canSendWhatsappOrder ? '#ffffff' : '#fef2f2',
+              border: `2px solid ${
+                subStatus.status === 'read_only'
+                  ? '#ef4444'
+                  : subStatus.status === 'grace_period'
+                  ? '#f59e0b'
+                  : subStatus.status === 'reminder_window'
+                  ? '#f97316'
+                  : '#22c55e'
+              }`,
+              borderRadius: '16px',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                borderBottom: '1px solid #f1ece6',
+                paddingBottom: '1rem',
+                marginBottom: '1rem',
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: subStatus.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
+                  }}
+                >
+                  ESTADO DE SUSCRIPCIÓN • ZONA HORARIA {subStatus.timezone}
+                </span>
+                <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.3rem', color: '#1f120a' }}>
+                  {subStatus.statusBadgeText}
+                </h3>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    background: subStatus.canSendWhatsappOrder ? '#dcfce7' : '#fee2e2',
+                    color: subStatus.canSendWhatsappOrder ? '#166534' : '#991b1b',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: subStatus.canSendWhatsappOrder ? '#22c55e' : '#ef4444',
+                    }}
+                  ></span>
+                  {subStatus.canSendWhatsappOrder ? 'Pedidos a WhatsApp Activos' : 'Modo Solo Lectura (Pedidos Pausados)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Aviso especial si está en gracia o en modo solo lectura */}
+            {subStatus.ownerAlert && (
+              <div
+                style={{
+                  background:
+                    subStatus.ownerAlert.level === 'critical'
+                      ? '#fee2e2'
+                      : subStatus.ownerAlert.level === 'danger'
+                      ? '#fef3c7'
+                      : '#ffedd5',
+                  border: '1px solid rgba(0,0,0,0.1)',
+                  borderRadius: '10px',
+                  padding: '0.85rem 1.15rem',
+                  marginBottom: '1rem',
+                  color: '#1f120a',
+                  fontSize: '0.88rem',
+                  lineHeight: 1.45,
+                }}
+              >
+                <strong>⚠️ {subStatus.ownerAlert.title}:</strong> {subStatus.ownerAlert.message}
+              </div>
+            )}
+
+            {/* Desglose de Fechas y Datos SPEI */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: '1rem',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
+                <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  📅 Cronograma de Facturación:
+                </span>
+                <div>Fecha de corte: <strong>{subStatus.nextBillingDate}</strong></div>
+                <div>Hoy en Cancún: <strong>{subStatus.todayCancun}</strong></div>
+                <div>Días de gracia configurados: <strong>{subStatus.graceDays} días</strong></div>
+                <div>Aviso preventivo automático: <strong>{subStatus.reminderDaysBefore} días antes</strong></div>
+              </div>
+
+              <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
+                <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
+                  🏦 Datos de Transferencia SPEI:
+                </span>
+                <div>Banco: <strong>{subStatus.paymentInfo?.bank || 'BBVA México'}</strong></div>
+                <div>
+                  CLABE:{' '}
+                  <code style={{ background: '#ffffff', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                    {subStatus.paymentInfo?.clabe || '012180001234567890'}
+                  </code>
+                </div>
+                <div>Beneficiario: <strong>{subStatus.paymentInfo?.beneficiary || 'RedaySoft'}</strong></div>
+                <div>Referencia: <strong>{subStatus.paymentInfo?.reference || 'MARIA-BONITA-01'}</strong></div>
+              </div>
+
+              <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
+                    💳 Pago Rápido en Línea:
+                  </span>
+                  <div>Cuota mensual: <strong>${subStatus.monthlyFee}.00 {subStatus.currency}</strong></div>
+                  <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '0.2rem' }}>
+                    WhatsApp del dueño: +{subStatus.billingPhone}
+                  </div>
+                </div>
+                {subStatus.paymentInfo?.paymentLink && (
+                  <a
+                    href={subStatus.paymentInfo.paymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      marginTop: '0.75rem',
+                      background: '#635bff',
+                      color: '#ffffff',
+                      textDecoration: 'none',
+                      padding: '0.5rem 0.9rem',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    Abrir Pasarela de Pago ↗
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tarjetas de Métricas Principales */}
         {summary && (

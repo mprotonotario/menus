@@ -1802,13 +1802,26 @@ const BUSINESS_DATA = {
 
   // Configuración de Facturación y Comisión de la Plataforma (Exclusivo para el Dueño del Restaurante)
   platformBilling: {
-    commissionPerOrder: 3, // $3.00 MXN cobrados por cada pedido generado desde la plataforma
+    commissionPerOrder: 3, // $3.00 MXN cobrados por cada comanda generada desde la plataforma
+    monthlyFee: 249, // Cuota fija mensual de mantenimiento ($249.00 MXN)
     currency: 'MXN',
-    cycleDays: 30, // Periodo máximo de liquidación (cada 30 días / mensual)
+    cycleDays: 30, // Periodo estándar de facturación (mensual)
+    graceDays: 5, // Días de gracia tras vencimiento antes de pasar a modo solo lectura
+    reminderDaysBefore: 3, // Días previos a fecha de corte para enviar recordatorio automático
+    nextBillingDate: '2026-11-28', // Fecha ISO YYYY-MM-DD en zona horaria America/Cancun
+    billingPhone: '529831226847', // WhatsApp del dueño para recordatorios
+    whatsappRecipient: '529831226847', // Alias de receptor
     ownerPin: '2026', // PIN de seguridad para acceder al panel privado de facturación
-    stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx', // Llave de Stripe configurable
+    stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx', // Llave pública de Stripe configurable
     companyName: 'RedaySoft Software & Menús Digitales',
-    supportEmail: 'facturacion@redaysoft.com'
+    supportEmail: 'facturacion@redaysoft.com',
+    paymentInfo: {
+      bank: 'BBVA México',
+      clabe: '012180001234567890',
+      beneficiary: 'RedaySoft Soluciones Digitales S.A.S.',
+      reference: 'MARIA-BONITA-01',
+      paymentLink: 'https://buy.stripe.com/test_maria_bonita_mensualidad'
+    }
   }
 };
 

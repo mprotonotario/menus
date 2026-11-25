@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { BUSINESS_DATA } from '../data/menuData';
 import { recordNewOrder } from '../utils/orderStorage';
+import { evaluateBillingStatus } from '../lib/billingStatus';
 
 export default function CartDrawer() {
   const {
@@ -20,6 +21,20 @@ export default function CartDrawer() {
 
   const [orderType, setOrderType] = useState('mesa'); // 'mesa' | 'llevar'
   const [tableOrName, setTableOrName] = useState('');
+  const [billingStatus, setBillingStatus] = useState(null);
+
+  useEffect(() => {
+    const checkBilling = () => {
+      try {
+        setBillingStatus(evaluateBillingStatus());
+      } catch (err) {
+        console.warn('Error evaluating billing status:', err);
+      }
+    };
+    checkBilling();
+    window.addEventListener('mb_billing_renewed', checkBilling);
+    return () => window.removeEventListener('mb_billing_renewed', checkBilling);
+  }, []);
 
   if (!isCartOpen) return null;
 
@@ -28,6 +43,12 @@ export default function CartDrawer() {
 
   const sendWhatsAppOrder = () => {
     if (cart.length === 0) return;
+
+    // Verificar si la plataforma se encuentra en modo solo lectura por morosidad
+    if (billingStatus && !billingStatus.canSendWhatsappOrder) {
+      alert('Los pedidos por WhatsApp están pausados temporalmente. Consulta a tu mesero para ordenar.');
+      return;
+    }
 
     let msg = `*NUEVA COMANDA - ${BUSINESS_DATA.brand?.name || 'CAFETERÍA MARÍA BONITA'}*\n`;
     msg += `📅 ${new Date().toLocaleDateString('es-MX')} | ⏰ ${new Date().toLocaleTimeString('es-MX', {
@@ -222,12 +243,36 @@ export default function CartDrawer() {
               <span>{formatMoney(cartSubtotal)} MXN</span>
             </div>
 
-            <button type="button" className="btn-whatsapp-order" onClick={sendWhatsAppOrder}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-              </svg>
-              <span>Enviar Pedido por WhatsApp</span>
-            </button>
+            {/* Botón de Enviar Pedido o Aviso Neutro de Modo Solo Lectura */}
+            {billingStatus && !billingStatus.canSendWhatsappOrder ? (
+              <div
+                className="cart-readonly-notice"
+                style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  margin: '0.85rem 0',
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: '1.4rem', display: 'block', marginBottom: '0.25rem' }}>📋</span>
+                <strong style={{ display: 'block', color: '#991b1b', fontSize: '0.925rem' }}>
+                  Menú solo consulta
+                </strong>
+                <p style={{ margin: '0.35rem 0 0 0', color: '#7f1d1d', fontSize: '0.8rem', lineHeight: 1.45 }}>
+                  Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar
+                  directamente con el personal en salón.
+                </p>
+              </div>
+            ) : (
+              <button type="button" className="btn-whatsapp-order" onClick={sendWhatsAppOrder}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+                <span>Enviar Pedido por WhatsApp</span>
+              </button>
+            )}
 
             <button type="button" className="btn-clear-cart" onClick={clearCart}>
               Vaciar toda la selección
