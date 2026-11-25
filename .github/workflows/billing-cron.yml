@@ -1,0 +1,67 @@
+name: Recordatorio Diario de Cobro y Facturación
+
+on:
+  schedule:
+    # 09:00 AM hora Cancún (America/Cancun es UTC-5 todo el año) -> 14:00 UTC
+    - cron: '0 14 * * *'
+  # Permite disparar la acción manualmente desde la pestaña "Actions" en GitHub para pruebas inmediatas
+  workflow_dispatch:
+    inputs:
+      override_url:
+        description: 'URL base opcional del menú (ej: https://mi-dominio.com)'
+        required: false
+        default: ''
+
+jobs:
+  check-and-notify-billing:
+    name: Evaluar Corte y Notificar por WhatsApp
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ejecutar endpoint de facturación
+        run: |
+          # Prioridad de URL: Input manual > Secreto APP_URL > Variable pública > Default de ejemplo
+          BASE_URL="${{ github.event.inputs.override_url }}"
+          if [ -z "$BASE_URL" ]; then
+            BASE_URL="${{ secrets.APP_URL }}"
+          fi
+          if [ -z "$BASE_URL" ]; then
+            BASE_URL="${{ vars.APP_URL }}"
+          fi
+          if [ -z "$BASE_URL" ]; then
+            echo "⚠️ ADVERTENCIA: No se configuró APP_URL en Secrets. Usando fallback local/ejemplo."
+            BASE_URL="http://localhost:3003"
+          fi
+
+          # Obtener secret del cron
+          SECRET="${{ secrets.CRON_SECRET }}"
+          if [ -z "$SECRET" ]; then
+            SECRET="cron_secret_maria_bonita_2026"
+          fi
+
+          # Limpiar diagonal final si existe
+          BASE_URL="${BASE_URL%/}"
+          TARGET_URL="${BASE_URL}/api/billing/cron?secret=${SECRET}"
+
+          echo "🚀 Llamando a endpoint de facturación:"
+          echo "URL: ${BASE_URL}/api/billing/cron?secret=***"
+          
+          # Realizar petición y capturar código de estado y cuerpo
+          HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "$TARGET_URL" -H "User-Agent: GitHub-Actions-Billing-Cron")
+          
+          # Separar cuerpo de respuesta del código HTTP
+          HTTP_BODY=$(echo "$HTTP_RESPONSE" | sed '$d')
+          HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n1)
+
+          echo "----------------------------------------"
+          echo "Respuesta del servidor (HTTP $HTTP_STATUS):"
+          echo "$HTTP_BODY"
+          echo "----------------------------------------"
+
+          # Validar respuesta
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Verificación de cobro completada exitosamente."
+          else
+            echo "❌ Error: El endpoint respondió con código HTTP $HTTP_STATUS."
+            exit 1
+          fi
