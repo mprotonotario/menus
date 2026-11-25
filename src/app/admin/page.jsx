@@ -1272,7 +1272,21 @@ export default function AdminBillingPage() {
                         })}
                       </td>
                       <td style={styles.td}>
-                        <span style={styles.orderTypeTag}>{ord.orderType}</span>
+                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={styles.orderTypeTag}>{ord.orderType}</span>
+                          {ord.paymentMethod && (
+                            <span
+                              style={{
+                                ...styles.orderTypeTag,
+                                background: ord.paymentMethod === 'Transferencia' ? '#dbeafe' : '#fef3c7',
+                                color: ord.paymentMethod === 'Transferencia' ? '#1e40af' : '#92400e',
+                                borderColor: ord.paymentMethod === 'Transferencia' ? '#bfdbfe' : '#fde68a',
+                              }}
+                            >
+                              {ord.paymentMethod === 'Transferencia' ? '🏦 Transferencia' : '💵 Efectivo'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={styles.td}>{ord.customerRef}</td>
                       <td style={{ ...styles.td, maxWidth: '280px', fontSize: '0.8rem', color: '#555' }}>

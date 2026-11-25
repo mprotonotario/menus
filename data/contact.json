@@ -13,5 +13,9 @@
     "instagram": "https://instagram.com/cafeteriamariabonita",
     "facebook": "https://facebook.com/cafeteriamariabonita",
     "tiktok": "https://tiktok.com/@cafeteriamariabonita"
+  },
+  "paymentConfig": {
+    "allowTransfer": true,
+    "allowCash": true
   }
 }

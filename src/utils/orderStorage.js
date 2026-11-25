@@ -150,7 +150,7 @@ export function getStoredOrders() {
 /**
  * Registrar un nuevo pedido generado desde el carrito de compras
  */
-export function recordNewOrder({ orderType, customerRef, tableOrName, items = [], total = 0 }) {
+export function recordNewOrder({ orderType, customerRef, paymentMethod, tableOrName, items = [], total = 0 }) {
   if (typeof window === 'undefined') return null;
 
   try {
@@ -170,6 +170,7 @@ export function recordNewOrder({ orderType, customerRef, tableOrName, items = []
       createdAt: new Date().toISOString(),
       orderType: normalizedType,
       customerRef: customerRef?.trim() || tableOrName?.trim() || 'Sin especificar',
+      paymentMethod: paymentMethod === 'Transferencia' ? 'Transferencia' : 'Efectivo',
       itemsCount: items.reduce((sum, item) => sum + (item.quantity || 1), 0),
       itemsSummary: items.map((i) => `${i.quantity}x ${i.name}`).join(', '),
       orderTotal: Number(total) || 0,

@@ -42,6 +42,7 @@ export async function GET() {
       topNotice: location.topNotice || {},
       contact: contact.contact || {},
       socials: contact.socials || {},
+      paymentConfig: contact.paymentConfig || { allowTransfer: true, allowCash: true },
       stats: about.stats || [],
       platformBilling: billing,
     };

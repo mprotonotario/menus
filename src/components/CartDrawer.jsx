@@ -24,8 +24,11 @@ export default function CartDrawer() {
   const [customerName, setCustomerName] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('efectivo'); // 'efectivo' | 'transferencia'
   const [formError, setFormError] = useState('');
   const [billingStatus, setBillingStatus] = useState(null);
+
+  const allowTransfer = BUSINESS_DATA?.paymentConfig?.allowTransfer !== false;
 
   useEffect(() => {
     let isMounted = true;
@@ -104,6 +107,12 @@ export default function CartDrawer() {
       msg += `*Modalidad:* Pasar a recoger al establecimiento\n`;
     }
 
+    if (paymentMethod === 'transferencia') {
+      msg += `*Forma de pago:* Transferencia bancaria (por favor compártanme sus datos de cuenta/CLABE para realizar la transferencia)\n`;
+    } else {
+      msg += `*Forma de pago:* Efectivo\n`;
+    }
+
     msg += `\n*Productos ordenados:*\n`;
 
     cart.forEach((item) => {
@@ -137,6 +146,7 @@ export default function CartDrawer() {
       recordNewOrder({
         orderType: orderType === 'delivery' ? 'A Domicilio' : 'Pasar a Buscar',
         customerRef: customerName.trim() + (orderType === 'delivery' ? ` — ${deliveryAddress.trim()}` : ''),
+        paymentMethod: paymentMethod === 'transferencia' ? 'Transferencia' : 'Efectivo',
         items: cart,
         total: cartSubtotal,
       });
@@ -317,6 +327,42 @@ export default function CartDrawer() {
                   📍 <strong>Recoger en:</strong> {BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}. Tu pedido se preparará para entrega en barra.
                 </div>
               )}
+
+              {/* Forma de pago */}
+              <div style={{ marginTop: '0.75rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.3rem' }}>
+                  Forma de pago:
+                </label>
+                {allowTransfer ? (
+                  <>
+                    <div className="order-type-tabs">
+                      <button
+                        type="button"
+                        className={`order-type-tab-btn ${paymentMethod === 'efectivo' ? 'active' : ''}`}
+                        onClick={() => setPaymentMethod('efectivo')}
+                      >
+                        💵 Efectivo
+                      </button>
+                      <button
+                        type="button"
+                        className={`order-type-tab-btn ${paymentMethod === 'transferencia' ? 'active' : ''}`}
+                        onClick={() => setPaymentMethod('transferencia')}
+                      >
+                        🏦 Transferencia
+                      </button>
+                    </div>
+                    {paymentMethod === 'transferencia' && (
+                      <div style={{ marginTop: '0.45rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '0.45rem 0.65rem', fontSize: '0.76rem', color: '#0369a1', lineHeight: 1.35 }}>
+                        ℹ️ El establecimiento te proporcionará sus datos bancarios (CLABE / Cuenta) por WhatsApp para realizar la transferencia.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: '0.78rem', color: '#6b5c52', background: '#ffffff', border: '1px solid #ebd9c5', borderRadius: '8px', padding: '0.45rem 0.65rem' }}>
+                    💵 Pago en efectivo al recibir / recoger
+                  </div>
+                )}
+              </div>
 
               {/* Mensaje de validación amigable */}
               {formError && (
