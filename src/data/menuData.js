@@ -1798,6 +1798,17 @@ const BUSINESS_DATA = {
     instagram: 'https://instagram.com/cafeteriamariabonita',
     facebook: 'https://facebook.com/cafeteriamariabonita',
     tiktok: 'https://tiktok.com/@cafeteriamariabonita'
+  },
+
+  // Configuración de Facturación y Comisión de la Plataforma (Exclusivo para el Dueño del Restaurante)
+  platformBilling: {
+    commissionPerOrder: 3, // $3.00 MXN cobrados por cada pedido generado desde la plataforma
+    currency: 'MXN',
+    cycleDays: 30, // Periodo máximo de liquidación (cada 30 días / mensual)
+    ownerPin: '2026', // PIN de seguridad para acceder al panel privado de facturación
+    stripePublishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx', // Llave de Stripe configurable
+    companyName: 'RedaySoft Software & Menús Digitales',
+    supportEmail: 'facturacion@redaysoft.com'
   }
 };
 

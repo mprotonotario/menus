@@ -116,7 +116,28 @@ export default function Footer() {
         </div>
 
         <div className="footer-bottom">
-          <p>© 2026 Cafetería María Bonita. Todos los derechos reservados. Desarrollado con pasión gastronómica.</p>
+          <p>
+            © 2026 Cafetería María Bonita. Todos los derechos reservados. Desarrollado con pasión gastronómica.
+            {' • '}
+            <a
+              href="/admin"
+              style={{
+                color: 'rgba(255, 255, 255, 0.4)',
+                textDecoration: 'none',
+                fontSize: '0.78rem',
+                marginLeft: '0.5rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#f6c475')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.4)')}
+              title="Acceso exclusivo para el dueño del restaurante"
+            >
+              🔒 Portal Dueño
+            </a>
+          </p>
           <a
             href="https://redaysoft.com"
             target="_blank"

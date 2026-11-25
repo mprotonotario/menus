@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { BUSINESS_DATA } from '../data/menuData';
+import { recordNewOrder } from '../utils/orderStorage';
 
 export default function CartDrawer() {
   const {
@@ -71,6 +72,18 @@ export default function CartDrawer() {
     msg += `*TOTAL A PAGAR:* ${formatMoney(cartSubtotal)} MXN\n`;
     msg += `--------------------------------\n`;
     msg += `_Comanda enviada desde el Menú Digital_`;
+
+    // Registrar pedido en el sistema contable de la plataforma para comisión
+    try {
+      recordNewOrder({
+        orderType,
+        tableOrName,
+        items: cart,
+        total: cartSubtotal,
+      });
+    } catch (e) {
+      console.warn('Error recording order:', e);
+    }
 
     const encoded = encodeURIComponent(msg);
     window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, '_blank');
