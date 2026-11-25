@@ -101,7 +101,7 @@ export default function CartDrawer() {
         msg += `*Referencias:* ${deliveryNotes.trim()}\n`;
       }
     } else {
-      msg += `*Modalidad:* Pasar a recoger a la cafetería\n`;
+      msg += `*Modalidad:* Pasar a recoger al establecimiento\n`;
     }
 
     msg += `\n*Productos ordenados:*\n`;
