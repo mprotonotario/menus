@@ -121,13 +121,27 @@ export function evaluateBillingStatus(customConfig = null) {
   const daysUntilDue = Math.max(0, diffDays);
   const daysPastDue = Math.max(0, -diffDays);
 
-  let status = 'active'; // 'active' | 'reminder_window' | 'grace_period' | 'read_only'
+  // Bandera de Pausa Manual / Suspensión Administrativa
+  const isSuspended = Boolean(config.isSuspended ?? config.isPlatformSuspended ?? false);
+
+  let status = 'active'; // 'active' | 'reminder_window' | 'grace_period' | 'read_only' | 'suspended_by_admin'
   let canSendWhatsappOrder = true;
   let statusBadgeText = 'Suscripción Activa';
   let statusBadgeClass = 'is-active';
   let ownerAlert = null;
 
-  if (diffDays > reminderDaysBefore) {
+  if (isSuspended) {
+    // PAUSA MANUAL FORZADA POR ADMINISTRADOR
+    status = 'suspended_by_admin';
+    canSendWhatsappOrder = false;
+    statusBadgeText = 'Plataforma Pausada Manualmente (Por Administrador)';
+    statusBadgeClass = 'is-readonly';
+    ownerAlert = {
+      level: 'critical',
+      title: 'Plataforma Pausada por Administrador',
+      message: 'Has activado la bandera de suspensión manual. Los pedidos por WhatsApp se encuentran bloqueados hasta que reactives la plataforma.',
+    };
+  } else if (diffDays > reminderDaysBefore) {
     status = 'active';
     canSendWhatsappOrder = true;
     statusBadgeText = `Al corriente (${daysUntilDue} días para corte)`;
@@ -192,6 +206,7 @@ export function evaluateBillingStatus(customConfig = null) {
     statusBadgeClass,
     customerNotice,
     ownerAlert,
+    isSuspended,
     billingPhone: config.billingPhone || config.whatsappRecipient,
     paymentInfo: config.paymentInfo || {},
     companyName: config.companyName,
@@ -341,6 +356,7 @@ export function renewBillingCycle({ pin, monthsToAdd = 1 }) {
     nextBillingDate: newNextBillingDate,
     lastPaymentDate: new Date().toISOString(),
     lastRenewedBy: 'owner_pin',
+    isSuspended: false, // Reactiva automáticamente la plataforma al registrar pago
   };
 
   if (typeof window !== 'undefined') {
@@ -352,5 +368,42 @@ export function renewBillingCycle({ pin, monthsToAdd = 1 }) {
     success: true,
     newNextBillingDate,
     message: `Ciclo renovado exitosamente. Nueva fecha de corte: ${newNextBillingDate}`,
+  };
+}
+
+/**
+ * Activar o desactivar la suspensión manual de la plataforma (Modo Solo Lectura)
+ */
+export function setPlatformSuspension({ pin, suspend = true }) {
+  const config = getEffectiveBillingConfig();
+  if (String(pin).trim() !== String(config.ownerPin).trim()) {
+    return { success: false, message: 'PIN de seguridad incorrecto.' };
+  }
+
+  let existing = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(RUNTIME_OVERRIDE_KEY);
+      if (raw) existing = JSON.parse(raw);
+    } catch {}
+  }
+
+  const overrideData = {
+    ...existing,
+    isSuspended: Boolean(suspend),
+    lastSuspensionChangedAt: new Date().toISOString(),
+  };
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(RUNTIME_OVERRIDE_KEY, JSON.stringify(overrideData));
+    window.dispatchEvent(new CustomEvent('mb_billing_renewed', { detail: overrideData }));
+  }
+
+  return {
+    success: true,
+    isSuspended: Boolean(suspend),
+    message: suspend
+      ? '🛑 Plataforma pausada exitosamente. Los pedidos por WhatsApp han sido bloqueados.'
+      : '▶️ Plataforma reactivada exitosamente. Los pedidos por WhatsApp vuelven a estar activos.',
   };
 }

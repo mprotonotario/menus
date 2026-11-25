@@ -13,6 +13,7 @@ import {
 import {
   evaluateBillingStatus,
   renewBillingCycle,
+  setPlatformSuspension,
   generateWhatsappReminderMessage,
 } from '../../lib/billingStatus';
 
@@ -87,6 +88,21 @@ export default function AdminBillingPage() {
     } else {
       alert(`⚠️ ${res.message}`);
     }
+  };
+
+  const handleToggleSuspension = () => {
+    const currentlySuspended = subStatus?.isSuspended;
+    const confirmMsg = currentlySuspended
+      ? '¿Deseas REACTIVAR la plataforma y habilitar los pedidos por WhatsApp nuevamente?'
+      : '¿Deseas PAUSAR la plataforma del restaurante? (El menú seguirá visible en modo solo consulta pero no podrán enviar pedidos a WhatsApp)';
+    if (!window.confirm(confirmMsg)) return;
+
+    const res = setPlatformSuspension({
+      pin: billingConfig.ownerPin,
+      suspend: !currentlySuspended,
+    });
+    alert(res.message);
+    refreshData();
   };
 
   const handleSendTestWhatsApp = () => {
@@ -246,6 +262,18 @@ export default function AdminBillingPage() {
               title="Registrar pago manual y sumar 1 mes a la fecha de corte"
             >
               🔄 Renovar Ciclo (+30 Días)
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleSuspension}
+              style={{
+                ...styles.demoOrderBtn,
+                background: subStatus?.isSuspended ? '#2563eb' : '#dc2626',
+                color: '#ffffff',
+              }}
+              title={subStatus?.isSuspended ? "Reactivar pedidos por WhatsApp" : "Pausar pedidos por WhatsApp si el cliente no ha pagado"}
+            >
+              {subStatus?.isSuspended ? '▶️ Reactivar Plataforma' : '🛑 Pausar Plataforma (Falta de Pago)'}
             </button>
             <button
               type="button"
