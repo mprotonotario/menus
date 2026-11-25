@@ -139,7 +139,8 @@ export default function CartDrawer() {
     });
 
     msg += `\n*Total a pagar:* ${formatMoney(cartSubtotal)} MXN\n\n`;
-    msg += `¿Me podrían confirmar si tienen todo disponible y el tiempo aproximado para tenerlo listo? ¡Muchas gracias!`;
+    msg += `¿Me podrían confirmar si tienen todo disponible y el tiempo aproximado para tenerlo listo? ¡Muchas gracias!\n\n`;
+    msg += `_Este mensaje fue generado por la plataforma de Menú Digital_`;
 
     // Registrar pedido en el sistema contable de la plataforma
     try {
