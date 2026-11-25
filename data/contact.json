@@ -15,7 +15,7 @@
     "tiktok": "https://tiktok.com/@cafeteriamariabonita"
   },
   "paymentConfig": {
-    "allowTransfer": true,
+    "allowTransfer": false,
     "allowCash": true
   }
 }

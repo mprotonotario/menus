@@ -3200,54 +3200,88 @@ img {
   opacity: 1;
 }
 
-/* Opciones de Pedido (Mesa / Llevar) */
+/* Opciones de Pedido (Configuración para Realizar el Pedido) */
 .order-type-box {
-  background: var(--cream-100);
-  padding: 0.85rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
+  background: linear-gradient(180deg, #ffffff 0%, #faf5ef 100%);
+  padding: 1.05rem;
+  border-radius: 14px;
+  border: 1.5px solid #ebd9c5;
+  box-shadow: 0 4px 18px rgba(60, 35, 22, 0.05);
+  transition: all var(--transition-fast);
 }
 
 .order-type-label {
-  font-size: 0.785rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--espresso-900);
-  margin-bottom: 0.5rem;
-  display: block;
+  margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .order-type-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .order-type-tab-btn {
-  padding: 0.45rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  border: 1.5px solid #e8dbcf;
   background: #ffffff;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #5a4538;
   text-align: center;
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.order-type-tab-btn:hover {
+  border-color: var(--terracotta-500);
+  color: var(--espresso-900);
+  background: #fffcf9;
 }
 
 .order-type-tab-btn.active {
   background: var(--espresso-900);
   color: #ffffff;
   border-color: var(--espresso-900);
+  box-shadow: 0 4px 12px rgba(42, 23, 14, 0.22);
+  transform: translateY(-1px);
 }
 
 .table-input-field {
   width: 100%;
-  margin-top: 0.6rem;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  font-size: 0.825rem;
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.85rem;
+  border: 1.5px solid #e3d3c2;
+  border-radius: 10px;
+  font-size: 0.835rem;
   font-family: inherit;
+  background: #ffffff;
+  color: var(--espresso-900);
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.table-input-field:focus {
+  outline: none;
+  border-color: var(--terracotta-500);
+  box-shadow: 0 0 0 3px rgba(194, 84, 40, 0.12);
+  background: #ffffff;
+}
+
+.table-input-field::placeholder {
+  color: #a89a8f;
+  font-weight: 400;
 }
 
 /* Footer del Carrito */

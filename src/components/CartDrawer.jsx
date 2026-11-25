@@ -251,7 +251,21 @@ export default function CartDrawer() {
         {cart.length > 0 && (
           <div className="cart-drawer-footer">
             <div className="order-type-box" style={{ marginBottom: '1rem' }}>
-              <span className="order-type-label">Tipo de Servicio:</span>
+              {/* Encabezado decorativo de configuración */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', paddingBottom: '0.55rem', borderBottom: '1.5px solid rgba(194, 84, 40, 0.12)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <span style={{ fontSize: '1.05rem' }}>⚙️</span>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#2a170e', letterSpacing: '-0.01em' }}>
+                    Configuración del Pedido
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#fceddf', color: '#c25428', padding: '0.2rem 0.55rem', borderRadius: '20px', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                  Paso Final
+                </span>
+              </div>
+
+              {/* Selector de Servicio */}
+              <span className="order-type-label">🛵 Modalidad de Entrega:</span>
               <div className="order-type-tabs">
                 <button
                   type="button"
@@ -276,9 +290,9 @@ export default function CartDrawer() {
               </div>
 
               {/* Nombre del cliente */}
-              <div style={{ marginTop: '0.65rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
-                  Nombre del cliente: <span style={{ color: '#dc2626' }}>*</span>
+              <div style={{ marginTop: '0.75rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                  <span>👤 Nombre de quien ordena:</span> <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -289,16 +303,16 @@ export default function CartDrawer() {
                     setCustomerName(e.target.value);
                     if (formError) setFormError('');
                   }}
-                  placeholder="Tu nombre completo"
+                  placeholder="Ingresa tu nombre y apellido"
                   maxLength={50}
                 />
               </div>
 
               {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
               {orderType === 'delivery' ? (
-                <div style={{ marginTop: '0.65rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
-                    Domicilio de entrega: <span style={{ color: '#dc2626' }}>*</span>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                    <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -315,23 +329,30 @@ export default function CartDrawer() {
                   <input
                     type="text"
                     className="table-input-field"
-                    style={{ marginTop: '0.35rem', fontSize: '0.8rem' }}
+                    style={{ marginTop: '0.45rem', fontSize: '0.8rem' }}
                     value={deliveryNotes}
                     onChange={(e) => setDeliveryNotes(e.target.value)}
-                    placeholder="Referencias de entrega (opcional, ej. Fachada blanca)"
+                    placeholder="🧭 Referencias de llegada (ej. Fachada blanca, portón café)"
                     maxLength={100}
                   />
                 </div>
               ) : (
-                <div style={{ marginTop: '0.55rem', background: '#ffffff', border: '1px solid #ebd9c5', borderRadius: '8px', padding: '0.45rem 0.65rem', fontSize: '0.76rem', color: '#6b5c52', lineHeight: 1.35 }}>
-                  📍 <strong>Recoger en:</strong> {BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}. Tu pedido se preparará para entrega en barra.
+                <div style={{ marginTop: '0.65rem', background: 'linear-gradient(135deg, #fffcf9 0%, #faf3eb 100%)', border: '1.5px dashed #debda2', borderRadius: '10px', padding: '0.65rem 0.85rem', fontSize: '0.78rem', color: '#4a382c', lineHeight: 1.4, display: 'flex', gap: '0.55rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }}>📍</span>
+                  <div>
+                    <strong style={{ color: '#2a170e', display: 'block', marginBottom: '0.15rem' }}>Recoger en barra del establecimiento:</strong>
+                    <span>{BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro, Chetumal, Q. Roo'}</span>
+                    <div style={{ fontSize: '0.72rem', color: '#8c6549', marginTop: '0.25rem', fontWeight: 600 }}>
+                      ✨ Prepararemos tu orden al momento para que la disfrutes fresca.
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Forma de pago */}
               <div style={{ marginTop: '0.75rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.3rem' }}>
-                  Forma de pago:
+                <label className="order-type-label" style={{ marginBottom: '0.35rem' }}>
+                  💳 Forma de pago:
                 </label>
                 {allowTransfer ? (
                   <>
@@ -352,14 +373,20 @@ export default function CartDrawer() {
                       </button>
                     </div>
                     {paymentMethod === 'transferencia' && (
-                      <div style={{ marginTop: '0.45rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '0.45rem 0.65rem', fontSize: '0.76rem', color: '#0369a1', lineHeight: 1.35 }}>
-                        ℹ️ El establecimiento te proporcionará sus datos bancarios (CLABE / Cuenta) por WhatsApp para realizar la transferencia.
+                      <div style={{ marginTop: '0.5rem', background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '10px', padding: '0.55rem 0.75rem', fontSize: '0.76rem', color: '#0369a1', lineHeight: 1.4, display: 'flex', gap: '0.45rem', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>ℹ️</span>
+                        <span>El establecimiento te compartirá los datos bancarios (CLABE / Cuenta) por WhatsApp para realizar tu transferencia.</span>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div style={{ fontSize: '0.78rem', color: '#6b5c52', background: '#ffffff', border: '1px solid #ebd9c5', borderRadius: '8px', padding: '0.45rem 0.65rem' }}>
-                    💵 Pago en efectivo al recibir / recoger
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', background: '#ffffff', border: '1.5px solid #d1fae5', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                    <span style={{ fontSize: '1.25rem' }}>💵</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534' }}>Pago en Efectivo</div>
+                      <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Liquidación directa al momento de recibir o recoger</div>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>✓ Activo</span>
                   </div>
                 )}
               </div>
