@@ -186,8 +186,10 @@ export function evaluateBillingStatus(customConfig = null) {
   // Notificación amigable para el cliente final (sin exponer adeudos ni detalles internos)
   const customerNotice = !canSendWhatsappOrder
     ? {
-        title: 'Menú solo consulta',
-        message: 'Los pedidos por WhatsApp están pausados temporalmente. Consulta todos nuestros platillos y solicita tu comanda directamente al mesero.',
+        title: config.customerNoticeTitle || 'Menú solo consulta',
+        message:
+          config.customerNoticeMessage ||
+          'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar directamente con el personal en nuestro establecimiento.',
       }
     : null;
 

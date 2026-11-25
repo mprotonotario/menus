@@ -50,7 +50,10 @@ export default function CartDrawer() {
 
     // Verificar si la plataforma se encuentra en modo solo lectura por morosidad
     if (billingStatus && !billingStatus.canSendWhatsappOrder) {
-      alert('Los pedidos por WhatsApp están pausados temporalmente. Consulta a tu mesero para ordenar.');
+      alert(
+        billingStatus.customerNotice?.message ||
+          'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar nuestro menú y ordenar directamente con el personal en el establecimiento.'
+      );
       return;
     }
 
@@ -265,8 +268,8 @@ export default function CartDrawer() {
                   Menú solo consulta
                 </strong>
                 <p style={{ margin: '0.35rem 0 0 0', color: '#7f1d1d', fontSize: '0.8rem', lineHeight: 1.45 }}>
-                  Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar
-                  directamente con el personal en salón.
+                  {billingStatus?.customerNotice?.message ||
+                    'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar directamente con el personal en nuestro establecimiento.'}
                 </p>
               </div>
             ) : (
