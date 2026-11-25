@@ -26,7 +26,7 @@ export function CartProvider({ children }) {
     }
 
     const updateStatus = () => {
-      setLiveStatus(computeLiveBusinessStatus(businessData?.hours || BUSINESS_DATA.hours));
+      setLiveStatus(computeLiveBusinessStatus(businessData || BUSINESS_DATA));
     };
     updateStatus();
     const timer = setInterval(updateStatus, 60000);
