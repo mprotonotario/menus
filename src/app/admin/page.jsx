@@ -51,6 +51,19 @@ export default function AdminBillingPage() {
   const [visitorsFilter, setVisitorsFilter] = useState('all'); // 'all' | 'mobile' | 'desktop'
   const [isLoadingVisitors, setIsLoadingVisitors] = useState(false);
 
+  // Menú de Navegación de Secciones en el Panel de Administración
+  const [activeAdminTab, setActiveAdminTab] = useState('all'); // 'all' | 'orders' | 'visitors' | 'billing' | 'receipts'
+
+  // Salto con scroll suave a una sección específica
+  const scrollToSection = (sectionId) => {
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   // Modales y Feedback
   const [selectedReceiptForModal, setSelectedReceiptForModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
@@ -796,895 +809,1094 @@ export default function AdminBillingPage() {
         </div>
       </header>
 
-      <main style={styles.mainContent}>
-        {/* Banner de bienvenida y aviso del ciclo */}
-        <div style={styles.welcomeBanner}>
-          <div>
-            <h1 style={styles.bannerTitle}>Control de Suscripción & Facturación Mensual</h1>
-            <p style={styles.bannerSubtitle}>
-              Cuota fija de plataforma: <strong>${monthlyFee}.00 {billingConfig.currency || 'MXN'} mensuales por adelantado</strong> • Apertura de mes de servicio con recepción de comandas por WhatsApp ilimitadas.
-            </p>
+      {/* Menú de Navegación / Acceso Rápido a Secciones */}
+      <nav style={styles.adminNavBar} aria-label="Navegación de Secciones del Panel">
+        <div style={styles.navContainer}>
+          <div style={styles.navHeaderInfo}>
+            <span style={styles.navMenuBadge}>MENÚ DE SECCIONES</span>
           </div>
-          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-            {subStatus && (
-              <a
-                href={clientWhatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  ...styles.actionBtn,
-                  background: '#059669',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                }}
-                title="Abrir WhatsApp para enviar mensaje al cliente con datos de apertura de mes y SPEI"
-              >
-                📲 {subStatus.isFirstPaidMonth ? 'Enviar Bienvenida & Cobro (WA)' : 'Enviar Cobro de Mes (WA)'}
-              </a>
-            )}
+
+          <div style={styles.navTabsList}>
             <button
               type="button"
-              onClick={handleRenewCycle}
+              onClick={() => setActiveAdminTab('all')}
               style={{
-                ...styles.actionBtn,
-                background: '#15803d',
+                ...styles.navTabBtn,
+                ...(activeAdminTab === 'all' ? styles.navTabBtnActive : {}),
               }}
-              title="Registrar pago mensual SPEI y aperturar el siguiente mes de servicio (+1 Mes)"
+              title="Ver todas las secciones del panel en una sola página continua"
             >
-              🔄 Renovar Ciclo (+30 Días)
+              🗂️ Vista Completa (Todo)
             </button>
+
             <button
               type="button"
-              onClick={handleToggleSuspension}
+              onClick={() => setActiveAdminTab('orders')}
               style={{
-                ...styles.actionBtn,
-                background: subStatus?.isSuspended ? '#2563eb' : '#dc2626',
+                ...styles.navTabBtn,
+                ...(activeAdminTab === 'orders' ? styles.navTabBtnActive : {}),
               }}
-              title={subStatus?.isSuspended ? "Reactivar pedidos por WhatsApp" : "Pausar pedidos por WhatsApp"}
+              title="Entrar a la sección de Registro de Comandas Recibidas desde el Menú Digital"
             >
-              {subStatus?.isSuspended ? '▶️ Reactivar Plataforma' : '🛑 Pausar Plataforma (Falta de Pago)'}
+              📋 Registro de Comandas
+              <span
+                style={{
+                  ...styles.navTabBadge,
+                  background: activeAdminTab === 'orders' ? '#ffffff' : '#fef3e7',
+                  color: '#c25428',
+                }}
+              >
+                {orders.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('visitors')}
+              style={{
+                ...styles.navTabBtn,
+                ...(activeAdminTab === 'visitors' ? styles.navTabBtnActive : {}),
+              }}
+              title="Entrar a la sección de Monitor de Tráfico & Bitácora de Visitantes por IP"
+            >
+              🌐 Monitor de Tráfico & Visitantes
+              <span
+                style={{
+                  ...styles.navTabBadge,
+                  background: activeAdminTab === 'visitors' ? '#ffffff' : '#dcfce7',
+                  color: '#15803d',
+                }}
+              >
+                {visitorStats?.totalIps ?? 0} IPs
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('billing')}
+              style={{
+                ...styles.navTabBtn,
+                ...(activeAdminTab === 'billing' ? styles.navTabBtnActive : {}),
+              }}
+              title="Entrar a la sección de Facturación & Suscripción Mensual"
+            >
+              💳 Facturación & Suscripción
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('receipts')}
+              style={{
+                ...styles.navTabBtn,
+                ...(activeAdminTab === 'receipts' ? styles.navTabBtnActive : {}),
+              }}
+              title="Entrar al Historial de Recibos y Comprobantes SPEI"
+            >
+              📜 Recibos ({history.length})
             </button>
           </div>
         </div>
+      </nav>
 
-        {/* Tarjeta de Control de Suscripción & Datos SPEI */}
-        {subStatus && (
-          <div
-            style={{
-              background: subStatus.canSendWhatsappOrder ? '#ffffff' : '#fef2f2',
-              border: `2px solid ${
-                subStatus.status === 'read_only'
-                  ? '#ef4444'
-                  : subStatus.status === 'grace_period'
-                  ? '#f59e0b'
-                  : subStatus.status === 'reminder_window'
-                  ? '#f97316'
-                  : '#22c55e'
-              }`,
-              borderRadius: '16px',
-              padding: '1.5rem',
-              marginBottom: '2rem',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                borderBottom: '1px solid #f1ece6',
-                paddingBottom: '1rem',
-                marginBottom: '1rem',
-              }}
-            >
+      <main style={styles.mainContent}>
+        {/* Barra de Salto Rápido cuando está en Vista Completa */}
+        {activeAdminTab === 'all' && (
+          <div style={styles.quickJumpBar}>
+            <span style={styles.quickJumpLabel}>⚡ Salto directo en esta página:</span>
+            <button type="button" onClick={() => scrollToSection('section-billing')} style={styles.quickJumpBtn}>
+              💳 Facturación & Suscripción
+            </button>
+            <button type="button" onClick={() => scrollToSection('section-receipts')} style={styles.quickJumpBtn}>
+              📜 Recibos ({history.length})
+            </button>
+            <button type="button" onClick={() => scrollToSection('section-orders')} style={styles.quickJumpBtn}>
+              📋 Registro de Comandas ({orders.length})
+            </button>
+            <button type="button" onClick={() => scrollToSection('section-visitors')} style={styles.quickJumpBtn}>
+              🌐 Monitor de Tráfico ({visitorStats?.totalIps ?? 0} IPs)
+            </button>
+          </div>
+        )}
+
+        {/* Banner de Contexto cuando está filtrado en una sección específica */}
+        {activeAdminTab !== 'all' && (
+          <div style={styles.activeSectionBanner}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontSize: '1.4rem' }}>
+                {activeAdminTab === 'orders' ? '📋' : activeAdminTab === 'visitors' ? '🌐' : activeAdminTab === 'billing' ? '💳' : '📜'}
+              </span>
               <div>
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: subStatus.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
-                  }}
-                >
-                  ESTADO DE SUSCRIPCIÓN • ZONA HORARIA {subStatus.timezone || 'America/Cancun'}
-                </span>
-                <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.3rem', color: '#1f120a' }}>
-                  {subStatus.statusBadgeText}
-                </h3>
+                <span style={styles.activeSectionKicker}>SECCIÓN ACTIVA DEL MENÚ</span>
+                <h2 style={styles.activeSectionTitle}>
+                  {activeAdminTab === 'orders' && 'Registro de Comandas Recibidas desde el Menú Digital'}
+                  {activeAdminTab === 'visitors' && 'Monitor de Tráfico & Bitácora de Visitantes'}
+                  {activeAdminTab === 'billing' && 'Control de Facturación & Suscripción Mensual'}
+                  {activeAdminTab === 'receipts' && 'Historial de Recibos y Comprobantes de Pago'}
+                </h2>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.4rem 0.85rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    background: subStatus.canSendWhatsappOrder ? '#dcfce7' : '#fee2e2',
-                    color: subStatus.canSendWhatsappOrder ? '#166534' : '#991b1b',
-                  }}
-                >
-                  <span
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('all')}
+              style={styles.viewAllSectionsBtn}
+              title="Volver a mostrar todas las secciones juntas"
+            >
+              🗂️ Ver Todo el Panel Completo
+            </button>
+          </div>
+        )}
+        {/* Sección: Control de Facturación & Suscripción Mensual */}
+        {(activeAdminTab === 'all' || activeAdminTab === 'billing') && (
+          <div id="section-billing">
+            {/* Banner de bienvenida y aviso del ciclo */}
+            <div style={styles.welcomeBanner}>
+              <div>
+                <h1 style={styles.bannerTitle}>Control de Suscripción & Facturación Mensual</h1>
+                <p style={styles.bannerSubtitle}>
+                  Cuota fija de plataforma: <strong>${monthlyFee}.00 {billingConfig.currency || 'MXN'} mensuales por adelantado</strong> • Apertura de mes de servicio con recepción de comandas por WhatsApp ilimitadas.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                {subStatus && (
+                  <a
+                    href={clientWhatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: subStatus.canSendWhatsappOrder ? '#22c55e' : '#ef4444',
+                      ...styles.actionBtn,
+                      background: '#059669',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
                     }}
-                  ></span>
-                  {subStatus.canSendWhatsappOrder ? 'Pedidos a WhatsApp Activos' : 'Modo Solo Lectura (Pedidos Pausados)'}
-                </span>
+                    title="Abrir WhatsApp para enviar mensaje al cliente con datos de apertura de mes y SPEI"
+                  >
+                    📲 {subStatus.isFirstPaidMonth ? 'Enviar Bienvenida & Cobro (WA)' : 'Enviar Cobro de Mes (WA)'}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleRenewCycle}
+                  style={{
+                    ...styles.actionBtn,
+                    background: '#15803d',
+                  }}
+                  title="Registrar pago mensual SPEI y aperturar el siguiente mes de servicio (+1 Mes)"
+                >
+                  🔄 Renovar Ciclo (+30 Días)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleSuspension}
+                  style={{
+                    ...styles.actionBtn,
+                    background: subStatus?.isSuspended ? '#2563eb' : '#dc2626',
+                  }}
+                  title={subStatus?.isSuspended ? "Reactivar pedidos por WhatsApp" : "Pausar pedidos por WhatsApp"}
+                >
+                  {subStatus?.isSuspended ? '▶️ Reactivar Plataforma' : '🛑 Pausar Plataforma (Falta de Pago)'}
+                </button>
               </div>
             </div>
 
-            {/* Aviso especial si está en alerta o en modo solo lectura */}
-            {subStatus.ownerAlert && (
+            {/* Tarjeta de Control de Suscripción & Datos SPEI */}
+            {subStatus && (
               <div
                 style={{
-                  background:
-                    subStatus.ownerAlert.level === 'critical'
-                      ? '#fee2e2'
-                      : subStatus.ownerAlert.level === 'danger'
-                      ? '#fef3c7'
-                      : '#ffedd5',
-                  border: '1px solid rgba(0,0,0,0.1)',
-                  borderRadius: '10px',
-                  padding: '0.85rem 1.15rem',
-                  marginBottom: '1rem',
-                  color: '#1f120a',
-                  fontSize: '0.88rem',
-                  lineHeight: 1.45,
+                  background: subStatus.canSendWhatsappOrder ? '#ffffff' : '#fef2f2',
+                  border: `2px solid ${
+                    subStatus.status === 'read_only'
+                      ? '#ef4444'
+                      : subStatus.status === 'grace_period'
+                      ? '#f59e0b'
+                      : subStatus.status === 'reminder_window'
+                      ? '#f97316'
+                      : '#22c55e'
+                  }`,
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  marginBottom: '2rem',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
                 }}
               >
-                <strong>⚠️ {subStatus.ownerAlert.title}:</strong> {subStatus.ownerAlert.message}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                    borderBottom: '1px solid #f1ece6',
+                    paddingBottom: '1rem',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: subStatus.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
+                      }}
+                    >
+                      ESTADO DE SUSCRIPCIÓN • ZONA HORARIA {subStatus.timezone || 'America/Cancun'}
+                    </span>
+                    <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.3rem', color: '#1f120a' }}>
+                      {subStatus.statusBadgeText}
+                    </h3>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.4rem 0.85rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        background: subStatus.canSendWhatsappOrder ? '#dcfce7' : '#fee2e2',
+                        color: subStatus.canSendWhatsappOrder ? '#166534' : '#991b1b',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: subStatus.canSendWhatsappOrder ? '#22c55e' : '#ef4444',
+                        }}
+                      ></span>
+                      {subStatus.canSendWhatsappOrder ? 'Pedidos a WhatsApp Activos' : 'Modo Solo Lectura (Pedidos Pausados)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Aviso especial si está en alerta o en modo solo lectura */}
+                {subStatus.ownerAlert && (
+                  <div
+                    style={{
+                      background:
+                        subStatus.ownerAlert.level === 'critical'
+                          ? '#fee2e2'
+                          : subStatus.ownerAlert.level === 'danger'
+                          ? '#fef3c7'
+                          : '#ffedd5',
+                      border: '1px solid rgba(0,0,0,0.1)',
+                      borderRadius: '10px',
+                      padding: '0.85rem 1.15rem',
+                      marginBottom: '1rem',
+                      color: '#1f120a',
+                      fontSize: '0.88rem',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <strong>⚠️ {subStatus.ownerAlert.title}:</strong> {subStatus.ownerAlert.message}
+                  </div>
+                )}
+
+                {/* Desglose de Fechas y Datos SPEI */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                    gap: '1rem',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
+                    <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
+                      📅 Cronograma de Facturación:
+                    </span>
+                    <div>Modalidad: <strong>Pago por adelantado (Apertura de mes)</strong></div>
+                    <div>Apertura de ciclo: <strong>{subStatus.nextBillingDate}</strong></div>
+                    <div>Hoy en Cancún: <strong>{subStatus.todayCancun}</strong></div>
+                    {subStatus.firstMonthFree && (
+                      <div>Mes de cortesía: <strong>✅ 1er Mes Gratis Aplicado</strong></div>
+                    )}
+                    <div>Ciclo actual: <strong>Mes #{subStatus.billingCycleNumber || 2} {subStatus.isFirstPaidMonth ? '(1er cobro con bienvenida)' : '(Mensualidad recurrente)'}</strong></div>
+                    <div>Días de gracia: <strong>{subStatus.graceDays} días tras apertura</strong></div>
+                    <div>Aviso preventivo: <strong>{subStatus.reminderDaysBefore} días antes</strong></div>
+                  </div>
+
+                  <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
+                    <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
+                      🏦 Datos de Transferencia SPEI:
+                    </span>
+                    <div>Banco: <strong>{paymentInfo.bank || 'BBVA México'}</strong></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.2rem 0' }}>
+                      <span>CLABE:</span>
+                      <code style={{ background: '#ffffff', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
+                        {paymentInfo.clabe || '012180001234567890'}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(paymentInfo.clabe || '012180001234567890', 'clabe')}
+                        style={styles.copySmallBtn}
+                        title="Copiar CLABE"
+                      >
+                        {copiedField === 'clabe' ? '✓ Copiado' : 'Copiar'}
+                      </button>
+                    </div>
+                    <div>Beneficiario: <strong>{paymentInfo.beneficiary || 'RedaySoft'}</strong></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+                      <span>Referencia: <strong>{paymentInfo.reference || 'CAFETERIA-DEMO-01'}</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(paymentInfo.reference || 'CAFETERIA-DEMO-01', 'ref')}
+                        style={styles.copySmallBtn}
+                        title="Copiar Referencia"
+                      >
+                        {copiedField === 'ref' ? '✓ Copiado' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
+                        💎 Tarifa Mensual Fija Adelantada:
+                      </span>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c25428' }}>
+                        ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '0.3rem' }}>
+                        Pago por adelantado para aperturar mes • Uso libre de menú y comandas
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: '0.75rem',
+                        background: '#e2e8f0',
+                        color: '#334155',
+                        padding: '0.45rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                      }}
+                    >
+                      🏦 Liquidación exclusiva vía Transferencia SPEI
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Desglose de Fechas y Datos SPEI */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                gap: '1rem',
-                fontSize: '0.85rem',
-              }}
-            >
-              <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
-                <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  📅 Cronograma de Facturación:
-                </span>
-                <div>Modalidad: <strong>Pago por adelantado (Apertura de mes)</strong></div>
-                <div>Apertura de ciclo: <strong>{subStatus.nextBillingDate}</strong></div>
-                <div>Hoy en Cancún: <strong>{subStatus.todayCancun}</strong></div>
-                {subStatus.firstMonthFree && (
-                  <div>Mes de cortesía: <strong>✅ 1er Mes Gratis Aplicado</strong></div>
-                )}
-                <div>Ciclo actual: <strong>Mes #{subStatus.billingCycleNumber || 2} {subStatus.isFirstPaidMonth ? '(1er cobro con bienvenida)' : '(Mensualidad recurrente)'}</strong></div>
-                <div>Días de gracia: <strong>{subStatus.graceDays} días tras apertura</strong></div>
-                <div>Aviso preventivo: <strong>{subStatus.reminderDaysBefore} días antes</strong></div>
-              </div>
-
-              <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
-                <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  🏦 Datos de Transferencia SPEI:
-                </span>
-                <div>Banco: <strong>{paymentInfo.bank || 'BBVA México'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.2rem 0' }}>
-                  <span>CLABE:</span>
-                  <code style={{ background: '#ffffff', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
-                    {paymentInfo.clabe || '012180001234567890'}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(paymentInfo.clabe || '012180001234567890', 'clabe')}
-                    style={styles.copySmallBtn}
-                    title="Copiar CLABE"
-                  >
-                    {copiedField === 'clabe' ? '✓ Copiado' : 'Copiar'}
-                  </button>
+            {/* Tarjetas de Métricas Principales (Adaptadas al modelo mensual) */}
+            <div style={styles.statsGrid}>
+              {/* Card 1: Cuota Mensual Fija */}
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Cuota Mensual del Servicio</span>
+                  <span style={styles.statIcon}>💎</span>
                 </div>
-                <div>Beneficiario: <strong>{paymentInfo.beneficiary || 'RedaySoft'}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
-                  <span>Referencia: <strong>{paymentInfo.reference || 'CAFETERIA-DEMO-01'}</strong></span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(paymentInfo.reference || 'CAFETERIA-DEMO-01', 'ref')}
-                    style={styles.copySmallBtn}
-                    title="Copiar Referencia"
-                  >
-                    {copiedField === 'ref' ? '✓ Copiado' : 'Copiar'}
-                  </button>
+                <div style={styles.statMainValue}>${monthlyFee}.00 {billingConfig.currency || 'MXN'}</div>
+                <div style={styles.statSubtext}>
+                  Membresía fija mensual • Sin comisiones por pedido
                 </div>
               </div>
 
-              <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    💎 Tarifa Mensual Fija Adelantada:
-                  </span>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c25428' }}>
-                    ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '0.3rem' }}>
-                    Pago por adelantado para aperturar mes • Uso libre de menú y comandas
-                  </div>
+              {/* Card 2: Estado del Servicio */}
+              <div
+                style={{
+                  ...styles.statCard,
+                  background: subStatus?.canSendWhatsappOrder ? '#ffffff' : '#fef2f2',
+                  borderColor: subStatus?.canSendWhatsappOrder ? '#e5e7eb' : '#fca5a5',
+                }}
+              >
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Estado de la Plataforma</span>
+                  <span style={styles.statIcon}>{subStatus?.canSendWhatsappOrder ? '🟢' : '🔴'}</span>
                 </div>
                 <div
                   style={{
-                    marginTop: '0.75rem',
-                    background: '#e2e8f0',
-                    color: '#334155',
-                    padding: '0.45rem 0.75rem',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    textAlign: 'center',
+                    ...styles.statMainValue,
+                    color: subStatus?.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
                   }}
                 >
-                  🏦 Liquidación exclusiva vía Transferencia SPEI
+                  {subStatus?.canSendWhatsappOrder ? 'Pedidos Activos' : 'Modo Solo Lectura'}
+                </div>
+                <div style={styles.statSubtext}>
+                  {subStatus?.canSendWhatsappOrder
+                    ? 'Los clientes pueden ordenar por WhatsApp'
+                    : 'Pedidos pausados por falta de pago'}
+                </div>
+              </div>
+
+              {/* Card 3: Próximo Corte Programado */}
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Próximo Corte de Servicio</span>
+                  <span style={styles.statIcon}>📅</span>
+                </div>
+                <div style={styles.statMainValue}>
+                  {subStatus?.nextBillingDate || '2026-11-28'}
+                </div>
+                <div style={styles.statSubtext}>
+                  {subStatus?.daysUntilDue !== undefined ? `${subStatus.daysUntilDue} días restantes de ciclo` : 'Corte cada 30 días'}
+                </div>
+                {/* Barra de progreso mensual */}
+                <div style={styles.progressBarBg}>
+                  <div
+                    style={{
+                      ...styles.progressBarFill,
+                      width: `${Math.min(100, Math.max(10, ((30 - (subStatus?.daysUntilDue || 0)) / 30) * 100))}%`,
+                      background: (subStatus?.daysUntilDue || 0) <= 3 ? '#ef4444' : '#c25428',
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Card 4: Historial de Mensualidades */}
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Historial de Mensualidades</span>
+                  <span style={styles.statIcon}>📑</span>
+                </div>
+                <div style={styles.statMainValue}>
+                  {history.length} <span style={{ fontSize: '1rem', fontWeight: 600 }}>pagadas</span>
+                </div>
+                <div style={styles.statSubtext}>
+                  {formatMoney(history.reduce((sum, r) => sum + (Number(r.totalPaid) || 0), 0))} MXN abonados a la fecha
+                </div>
+              </div>
+
+              {/* Card 5: Comandas Enviadas por Clientes (Métrica Operativa) */}
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Comandas Recibidas</span>
+                  <span style={styles.statIcon}>🛍️</span>
+                </div>
+                <div style={styles.statMainValue}>{orders.length}</div>
+                <div style={styles.statSubtext}>
+                  Pedidos totales enviados desde el Menú Digital
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tarjetas de Métricas Principales (Adaptadas al modelo mensual) */}
-        <div style={styles.statsGrid}>
-          {/* Card 1: Cuota Mensual Fija */}
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>
-              <span style={styles.statLabel}>Cuota Mensual del Servicio</span>
-              <span style={styles.statIcon}>💎</span>
-            </div>
-            <div style={styles.statMainValue}>${monthlyFee}.00 {billingConfig.currency || 'MXN'}</div>
-            <div style={styles.statSubtext}>
-              Membresía fija mensual • Sin comisiones por pedido
-            </div>
-          </div>
+        {/* Sección Principal: Instrucciones SPEI & Historial de Recibos */}
+        {(activeAdminTab === 'all' || activeAdminTab === 'billing' || activeAdminTab === 'receipts') && (
+          <div style={activeAdminTab === 'all' ? styles.twoColLayout : { marginBottom: '2.5rem' }}>
+            {/* Columna Izquierda: Datos e Instrucciones de Pago SPEI */}
+            {(activeAdminTab === 'all' || activeAdminTab === 'billing') && (
+              <section id="section-spei" style={styles.speiCardSection}>
+                <div style={styles.sectionHeaderSpei}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ fontSize: '1.4rem' }}>🏦</span>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#27170e' }}>
+                        Instrucciones de Pago de Mensualidad
+                      </h3>
+                      <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                        Transferencia Interbancaria SPEI Oficial
+                      </span>
+                    </div>
+                  </div>
+                  <span style={styles.speiBadge}>Vía SPEI</span>
+                </div>
 
-          {/* Card 2: Estado del Servicio */}
-          <div
-            style={{
-              ...styles.statCard,
-              background: subStatus?.canSendWhatsappOrder ? '#ffffff' : '#fef2f2',
-              borderColor: subStatus?.canSendWhatsappOrder ? '#e5e7eb' : '#fca5a5',
-            }}
-          >
-            <div style={styles.statHeader}>
-              <span style={styles.statLabel}>Estado de la Plataforma</span>
-              <span style={styles.statIcon}>{subStatus?.canSendWhatsappOrder ? '🟢' : '🔴'}</span>
-            </div>
-            <div
-              style={{
-                ...styles.statMainValue,
-                color: subStatus?.canSendWhatsappOrder ? '#15803d' : '#b91c1c',
-              }}
-            >
-              {subStatus?.canSendWhatsappOrder ? 'Pedidos Activos' : 'Modo Solo Lectura'}
-            </div>
-            <div style={styles.statSubtext}>
-              {subStatus?.canSendWhatsappOrder
-                ? 'Los clientes pueden ordenar por WhatsApp'
-                : 'Pedidos pausados por falta de pago'}
-            </div>
-          </div>
+                <div style={styles.speiBody}>
+                  <div style={styles.speiHighlightBox}>
+                    <span style={{ fontSize: '0.78rem', color: '#8c5936', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Importe Mensual a Transferir:
+                    </span>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#c25428', margin: '0.2rem 0' }}>
+                      ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: '#6b5c52' }}>
+                      Concepto: Membresía Menú Digital María Bonita
+                    </span>
+                  </div>
 
-          {/* Card 3: Próximo Corte Programado */}
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>
-              <span style={styles.statLabel}>Próximo Corte de Servicio</span>
-              <span style={styles.statIcon}>📅</span>
-            </div>
-            <div style={styles.statMainValue}>
-              {subStatus?.nextBillingDate || '2026-11-28'}
-            </div>
-            <div style={styles.statSubtext}>
-              {subStatus?.daysUntilDue !== undefined ? `${subStatus.daysUntilDue} días restantes de ciclo` : 'Corte cada 30 días'}
-            </div>
-            {/* Barra de progreso mensual */}
-            <div style={styles.progressBarBg}>
-              <div
-                style={{
-                  ...styles.progressBarFill,
-                  width: `${Math.min(100, Math.max(10, ((30 - (subStatus?.daysUntilDue || 0)) / 30) * 100))}%`,
-                  background: (subStatus?.daysUntilDue || 0) <= 3 ? '#ef4444' : '#c25428',
-                }}
-              ></div>
-            </div>
-          </div>
+                  <div style={styles.speiDataGrid}>
+                    <div style={styles.speiDataRow}>
+                      <span style={styles.speiLabel}>Banco Receptor:</span>
+                      <strong style={styles.speiVal}>{paymentInfo.bank || 'BBVA México'}</strong>
+                    </div>
 
-          {/* Card 4: Historial de Mensualidades */}
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>
-              <span style={styles.statLabel}>Historial de Mensualidades</span>
-              <span style={styles.statIcon}>📑</span>
-            </div>
-            <div style={styles.statMainValue}>
-              {history.length} <span style={{ fontSize: '1rem', fontWeight: 600 }}>pagadas</span>
-            </div>
-            <div style={styles.statSubtext}>
-              {formatMoney(history.reduce((sum, r) => sum + (Number(r.totalPaid) || 0), 0))} MXN abonados a la fecha
-            </div>
-          </div>
+                    <div style={styles.speiDataRow}>
+                      <span style={styles.speiLabel}>CLABE Interbancaria:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <code style={styles.codeVal}>{paymentInfo.clabe || '012180001234567890'}</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(paymentInfo.clabe || '012180001234567890', 'clabe2')}
+                          style={styles.copySmallBtn}
+                        >
+                          {copiedField === 'clabe2' ? '✓ Copiado' : 'Copiar'}
+                        </button>
+                      </div>
+                    </div>
 
-          {/* Card 5: Comandas Enviadas por Clientes (Métrica Operativa) */}
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>
-              <span style={styles.statLabel}>Comandas Recibidas</span>
-              <span style={styles.statIcon}>🛍️</span>
-            </div>
-            <div style={styles.statMainValue}>{orders.length}</div>
-            <div style={styles.statSubtext}>
-              Pedidos totales enviados desde el Menú Digital
-            </div>
-          </div>
-        </div>
+                    <div style={styles.speiDataRow}>
+                      <span style={styles.speiLabel}>Beneficiario:</span>
+                      <strong style={styles.speiVal}>{paymentInfo.beneficiary || 'RedaySoft Soluciones Digitales'}</strong>
+                    </div>
 
-        {/* Sección Principal en Dos Columnas: Instrucciones SPEI & Historial de Recibos */}
-        <div style={styles.twoColLayout}>
-          {/* Columna Izquierda: Datos e Instrucciones de Pago SPEI */}
-          <section style={styles.speiCardSection}>
-            <div style={styles.sectionHeaderSpei}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <span style={{ fontSize: '1.4rem' }}>🏦</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#27170e' }}>
-                    Instrucciones de Pago de Mensualidad
-                  </h3>
-                  <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
-                    Transferencia Interbancaria SPEI Oficial
+                    <div style={styles.speiDataRow}>
+                      <span style={styles.speiLabel}>Referencia Obligatoria:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <code style={styles.codeVal}>{paymentInfo.reference || 'MARIA-BONITA-01'}</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(paymentInfo.reference || 'MARIA-BONITA-01', 'ref2')}
+                          style={styles.copySmallBtn}
+                        >
+                          {copiedField === 'ref2' ? '✓ Copiado' : 'Copiar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={styles.speiNoticeBox}>
+                    <span style={{ fontSize: '1.1rem' }}>💡</span>
+                    <p style={{ margin: 0, fontSize: '0.825rem', color: '#4a3b32', lineHeight: 1.45 }}>
+                      Una vez realizada tu transferencia SPEI, puedes enviar tu comprobante al administrador por WhatsApp o presionar <strong>"Renovar Ciclo (+30 Días)"</strong> para archivar el pago y extender el servicio de inmediato.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataStr = `Banco: ${paymentInfo.bank || 'BBVA México'}\nCLABE: ${paymentInfo.clabe || '012180001234567890'}\nBeneficiario: ${paymentInfo.beneficiary || 'RedaySoft'}\nReferencia: ${paymentInfo.reference || 'MARIA-BONITA-01'}\nMonto: $${monthlyFee}.00 MXN`;
+                      handleCopy(dataStr, 'all_spei');
+                    }}
+                    style={styles.copyAllBtn}
+                  >
+                    {copiedField === 'all_spei' ? '✓ ¡Datos Completos Copiados!' : '📋 Copiar Todos los Datos para SPEI'}
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Columna Derecha: Historial de Comprobantes de Pago */}
+            {(activeAdminTab === 'all' || activeAdminTab === 'receipts') && (
+              <section id="section-receipts" style={styles.historySection}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                  <h3 style={styles.sectionHeading}>📜 Recibos y Comprobantes de Historial</h3>
+                  <span style={{ fontSize: '0.8rem', background: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
+                    {history.length} Emitidos
                   </span>
                 </div>
-              </div>
-              <span style={styles.speiBadge}>Vía SPEI</span>
-            </div>
+                <p style={styles.sectionDesc}>
+                  Comprobantes de pago de mensualidades registradas para la plataforma.
+                </p>
 
-            <div style={styles.speiBody}>
-              <div style={styles.speiHighlightBox}>
-                <span style={{ fontSize: '0.78rem', color: '#8c5936', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Importe Mensual a Transferir:
-                </span>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#c25428', margin: '0.2rem 0' }}>
-                  ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
-                </div>
-                <span style={{ fontSize: '0.8rem', color: '#6b5c52' }}>
-                  Concepto: Membresía Menú Digital María Bonita
-                </span>
-              </div>
-
-              <div style={styles.speiDataGrid}>
-                <div style={styles.speiDataRow}>
-                  <span style={styles.speiLabel}>Banco Receptor:</span>
-                  <strong style={styles.speiVal}>{paymentInfo.bank || 'BBVA México'}</strong>
-                </div>
-
-                <div style={styles.speiDataRow}>
-                  <span style={styles.speiLabel}>CLABE Interbancaria:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <code style={styles.codeVal}>{paymentInfo.clabe || '012180001234567890'}</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(paymentInfo.clabe || '012180001234567890', 'clabe2')}
-                      style={styles.copySmallBtn}
-                    >
-                      {copiedField === 'clabe2' ? '✓ Copiado' : 'Copiar'}
-                    </button>
+                {history.length === 0 ? (
+                  <div style={styles.emptyHistory}>Aún no se han emitido recibos de pago.</div>
+                ) : (
+                  <div style={styles.historyList}>
+                    {history.map((receipt) => (
+                      <div key={receipt.id} style={styles.receiptItem}>
+                        <div>
+                          <strong style={{ display: 'block', color: '#27170e', fontSize: '0.95rem' }}>
+                            Comprobante #{receipt.id} ({receipt.folio})
+                          </strong>
+                          <span style={{ fontSize: '0.8rem', color: '#6b5c52', display: 'block', marginTop: '0.15rem' }}>
+                            📅 {new Date(receipt.date).toLocaleDateString('es-MX')} • {receipt.period || 'Membresía Mensual'}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-block', marginTop: '0.2rem' }}>
+                            ✓ {receipt.status || 'Aprobado y Liquidado'} ({receipt.paymentMethod || 'SPEI'})
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={styles.receiptAmount}>{formatMoney(receipt.totalPaid)} MXN</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReceiptForModal(receipt)}
+                            style={styles.receiptDetailBtn}
+                          >
+                            📄 Ver Recibo
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
+              </section>
+            )}
+          </div>
+        )}
 
-                <div style={styles.speiDataRow}>
-                  <span style={styles.speiLabel}>Beneficiario:</span>
-                  <strong style={styles.speiVal}>{paymentInfo.beneficiary || 'RedaySoft Soluciones Digitales'}</strong>
-                </div>
-
-                <div style={styles.speiDataRow}>
-                  <span style={styles.speiLabel}>Referencia Obligatoria:</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <code style={styles.codeVal}>{paymentInfo.reference || 'MARIA-BONITA-01'}</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(paymentInfo.reference || 'MARIA-BONITA-01', 'ref2')}
-                      style={styles.copySmallBtn}
-                    >
-                      {copiedField === 'ref2' ? '✓ Copiado' : 'Copiar'}
-                    </button>
+        {/* Tabla Detallada de Pedidos Registrados (Métrica Operativa sin comisiones) */}
+        {(activeAdminTab === 'all' || activeAdminTab === 'orders') && (
+          <section id="section-orders" style={{ ...styles.tableSection, marginTop: activeAdminTab === 'orders' ? '0' : '2.5rem' }}>
+            {/* Resumen rápido de métricas de comandas al entrar a la sección */}
+            {activeAdminTab === 'orders' && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                  gap: '1rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div style={{ background: '#faf7f2', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase' }}>
+                    📋 Comandas Totales
+                  </span>
+                  <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#27170e', marginTop: '0.2rem' }}>
+                    {orders.length}
                   </div>
+                  <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>Registradas desde el Menú</span>
+                </div>
+                <div style={{ background: '#faf7f2', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase' }}>
+                    🛍️ Pasar a Buscar / Mesa
+                  </span>
+                  <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#c25428', marginTop: '0.2rem' }}>
+                    {orders.filter((o) => o.orderType?.includes('Buscar') || o.orderType === 'Para Llevar' || o.orderType === 'Mesa').length}
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>Para recoger o en salón</span>
+                </div>
+                <div style={{ background: '#faf7f2', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase' }}>
+                    🛵 Envío a Domicilio
+                  </span>
+                  <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#2563eb', marginTop: '0.2rem' }}>
+                    {orders.filter((o) => o.orderType?.includes('Domicilio')).length}
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>Con dirección de entrega</span>
+                </div>
+                <div style={{ background: '#faf7f2', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase' }}>
+                    💵 Total Facturado Comandas
+                  </span>
+                  <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#16a34a', marginTop: '0.2rem' }}>
+                    {formatMoney(orders.reduce((sum, o) => sum + (Number(o.orderTotal) || 0), 0))} MXN
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>Venta acumulada en comandas</span>
                 </div>
               </div>
+            )}
 
-              <div style={styles.speiNoticeBox}>
-                <span style={{ fontSize: '1.1rem' }}>💡</span>
-                <p style={{ margin: 0, fontSize: '0.825rem', color: '#4a3b32', lineHeight: 1.45 }}>
-                  Una vez realizada tu transferencia SPEI, puedes enviar tu comprobante al administrador por WhatsApp o presionar <strong>"Renovar Ciclo (+30 Días)"</strong> para archivar el pago y extender el servicio de inmediato.
+            <div style={styles.tableHeaderRow}>
+              <div>
+                <h3 style={styles.sectionHeading}>📋 Registro de Comandas Recibidas desde el Menú Digital</h3>
+                <p style={styles.sectionDesc}>
+                  Historial de pedidos que los comensales han generado a través del carrito de compras y WhatsApp.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const dataStr = `Banco: ${paymentInfo.bank || 'BBVA México'}\nCLABE: ${paymentInfo.clabe || '012180001234567890'}\nBeneficiario: ${paymentInfo.beneficiary || 'RedaySoft'}\nReferencia: ${paymentInfo.reference || 'MARIA-BONITA-01'}\nMonto: $${monthlyFee}.00 MXN`;
-                  handleCopy(dataStr, 'all_spei');
-                }}
-                style={styles.copyAllBtn}
-              >
-                {copiedField === 'all_spei' ? '✓ ¡Datos Completos Copiados!' : '📋 Copiar Todos los Datos para SPEI'}
-              </button>
-            </div>
-          </section>
-
-          {/* Columna Derecha: Historial de Comprobantes de Pago */}
-          <section style={styles.historySection}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-              <h3 style={styles.sectionHeading}>📜 Recibos y Comprobantes de Historial</h3>
-              <span style={{ fontSize: '0.8rem', background: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
-                {history.length} Emitidos
-              </span>
-            </div>
-            <p style={styles.sectionDesc}>
-              Comprobantes de pago de mensualidades registradas para la plataforma.
-            </p>
-
-            {history.length === 0 ? (
-              <div style={styles.emptyHistory}>Aún no se han emitido recibos de pago.</div>
-            ) : (
-              <div style={styles.historyList}>
-                {history.map((receipt) => (
-                  <div key={receipt.id} style={styles.receiptItem}>
-                    <div>
-                      <strong style={{ display: 'block', color: '#27170e', fontSize: '0.95rem' }}>
-                        Comprobante #{receipt.id} ({receipt.folio})
-                      </strong>
-                      <span style={{ fontSize: '0.8rem', color: '#6b5c52', display: 'block', marginTop: '0.15rem' }}>
-                        📅 {new Date(receipt.date).toLocaleDateString('es-MX')} • {receipt.period || 'Membresía Mensual'}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-block', marginTop: '0.2rem' }}>
-                        ✓ {receipt.status || 'Aprobado y Liquidado'} ({receipt.paymentMethod || 'SPEI'})
-                      </span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={styles.receiptAmount}>{formatMoney(receipt.totalPaid)} MXN</span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedReceiptForModal(receipt)}
-                        style={styles.receiptDetailBtn}
-                      >
-                        📄 Ver Recibo
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Tabla Detallada de Pedidos Registrados (Métrica Operativa sin comisiones) */}
-        <section style={styles.tableSection}>
-          <div style={styles.tableHeaderRow}>
-            <div>
-              <h3 style={styles.sectionHeading}>📋 Registro de Comandas Recibidas desde el Menú Digital</h3>
-              <p style={styles.sectionDesc}>
-                Historial de pedidos que los comensales han generado a través del carrito de compras y WhatsApp.
-              </p>
-            </div>
-
-            {/* Filtros */}
-            <div style={styles.filterButtonGroup}>
-              <button
-                type="button"
-                onClick={() => setOrdersFilter('all')}
-                style={{
-                  ...styles.filterBtn,
-                  background: ordersFilter === 'all' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'all' ? '#ffffff' : '#27170e',
-                }}
-              >
-                Todas ({orders.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrdersFilter('pickup')}
-                style={{
-                  ...styles.filterBtn,
-                  background: ordersFilter === 'pickup' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'pickup' ? '#ffffff' : '#27170e',
-                }}
-              >
-                Pasar a Buscar ({orders.filter((o) => o.orderType?.includes('Buscar') || o.orderType === 'Para Llevar' || o.orderType === 'Mesa').length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrdersFilter('domicilio')}
-                style={{
-                  ...styles.filterBtn,
-                  background: ordersFilter === 'domicilio' ? '#c25428' : '#ffffff',
-                  color: ordersFilter === 'domicilio' ? '#ffffff' : '#27170e',
-                }}
-              >
-                A Domicilio ({orders.filter((o) => o.orderType?.includes('Domicilio')).length})
-              </button>
-            </div>
-          </div>
-
-          <div style={styles.tableResponsive}>
-            <table style={styles.ordersTable}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Folio</th>
-                  <th style={styles.th}>Fecha & Hora</th>
-                  <th style={styles.th}>Modalidad</th>
-                  <th style={styles.th}>Mesa / Cliente</th>
-                  <th style={styles.th}>Comanda / Detalle</th>
-                  <th style={styles.th}>Total de Cuenta</th>
-                  <th style={styles.th}>Canal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
-                      No hay pedidos en este filtro.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredOrders.map((ord) => (
-                    <tr key={ord.id} style={styles.tr}>
-                      <td style={styles.td}>
-                        <strong>#{ord.folio}</strong>
-                      </td>
-                      <td style={styles.td}>
-                        {new Date(ord.createdAt).toLocaleDateString('es-MX', {
-                          day: '2-digit',
-                          month: 'short',
-                        })}{' '}
-                        •{' '}
-                        {new Date(ord.createdAt).toLocaleTimeString('es-MX', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                      <td style={styles.td}>
-                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                          <span style={styles.orderTypeTag}>{ord.orderType}</span>
-                          {ord.paymentMethod && (
-                            <span
-                              style={{
-                                ...styles.orderTypeTag,
-                                background: ord.paymentMethod === 'Transferencia' ? '#dbeafe' : '#fef3c7',
-                                color: ord.paymentMethod === 'Transferencia' ? '#1e40af' : '#92400e',
-                                borderColor: ord.paymentMethod === 'Transferencia' ? '#bfdbfe' : '#fde68a',
-                              }}
-                            >
-                              {ord.paymentMethod === 'Transferencia' ? '🏦 Transferencia' : '💵 Efectivo'}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={styles.td}>{ord.customerRef}</td>
-                      <td style={{ ...styles.td, maxWidth: '280px', fontSize: '0.8rem', color: '#555' }}>
-                        {ord.itemsSummary || `${ord.itemsCount || 1} artículos`}
-                      </td>
-                      <td style={styles.td}>
-                        <strong style={{ color: '#27170e' }}>{formatMoney(ord.orderTotal)}</strong>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={styles.badgePaid}>📲 Enviado a WhatsApp</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Sección: Monitor de Tráfico en Vivo & Bitácora de Visitantes por IP */}
-        <section style={{ ...styles.tableSection, marginTop: '2.5rem' }}>
-          <div style={styles.tableHeaderRow}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <h3 style={styles.sectionHeading}>🌐 Monitor de Tráfico & Bitácora de Visitantes</h3>
-                <span
+              {/* Filtros */}
+              <div style={styles.filterButtonGroup}>
+                <button
+                  type="button"
+                  onClick={() => setOrdersFilter('all')}
                   style={{
-                    background: '#dcfce7',
-                    color: '#15803d',
-                    padding: '0.2rem 0.65rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
+                    ...styles.filterBtn,
+                    background: ordersFilter === 'all' ? '#c25428' : '#ffffff',
+                    color: ordersFilter === 'all' ? '#ffffff' : '#27170e',
                   }}
                 >
-                  🟢 Registro Activo en logs/visitors.log
-                </span>
-              </div>
-              <p style={styles.sectionDesc}>
-                Monitoreo interno de clientes e IPs que acceden al Menú Digital. Si una IP re-ingresa, se actualiza automáticamente su fecha, hora y dispositivo.
-              </p>
-            </div>
-
-            {/* Botones de acción y filtros */}
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <button
-                type="button"
-                onClick={handleRefreshVisitors}
-                disabled={isLoadingVisitors}
-                style={{
-                  ...styles.actionBtn,
-                  background: '#2563eb',
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.82rem',
-                }}
-                title="Volver a leer la bitácora de logs/visitors.log"
-              >
-                {isLoadingVisitors ? '⏳ Cargando...' : '🔄 Refrescar Accesos'}
-              </button>
-              <a
-                href="/api/visitors/record?view=raw"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  ...styles.actionBtn,
-                  background: '#475569',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.45rem 0.85rem',
-                  fontSize: '0.82rem',
-                }}
-                title="Abrir el archivo plano de logs/visitors.log"
-              >
-                📄 Ver Bitácora Cruda (.log)
-              </a>
-            </div>
-          </div>
-
-          {/* Mini Tarjetas de Métricas de Visitantes */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-              gap: '1rem',
-              margin: '1.2rem 0 1.5rem 0',
-            }}
-          >
-            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                👥 IPs Únicas Registradas
-              </span>
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#27170e', marginTop: '0.2rem' }}>
-                {visitorStats?.totalIps ?? 0}
-              </div>
-              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
-                Visitantes distintos identificados
-              </span>
-            </div>
-
-            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                🔄 Total de Entradas / Visitas
-              </span>
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', marginTop: '0.2rem' }}>
-                {visitorStats?.totalVisits ?? 0}
-              </div>
-              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
-                Aperturas y re-ingresos al sitio
-              </span>
-            </div>
-
-            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                📱 Clientes en Celular (Móvil)
-              </span>
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#16a34a', marginTop: '0.2rem' }}>
-                {visitorStats?.mobileCount ?? 0}{' '}
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#15803d' }}>
-                  ({visitorStats?.mobilePercent ?? 0}%)
-                </span>
-              </div>
-              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
-                Smartphones Android & iPhone
-              </span>
-            </div>
-
-            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                💻 Clientes en Computadora
-              </span>
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.2rem' }}>
-                {visitorStats?.desktopCount ?? 0}{' '}
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#6d28d9' }}>
-                  ({visitorStats?.desktopPercent ?? 0}%)
-                </span>
-              </div>
-              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
-                Escritorio Windows, Mac y Linux
-              </span>
-            </div>
-          </div>
-
-          {/* Barra Visual de Distribución de Dispositivos */}
-          {Boolean(visitorStats?.totalIps) && (
-            <div style={{ marginBottom: '1.5rem', background: '#faf7f2', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #ebd9c5' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', color: '#27170e' }}>
-                <span>📱 Móvil: {visitorStats?.mobilePercent ?? 0}%</span>
-                <span>💻 Computadora: {visitorStats?.desktopPercent ?? 0}%</span>
-              </div>
-              <div style={{ height: '10px', width: '100%', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden', display: 'flex' }}>
-                <div style={{ width: `${visitorStats?.mobilePercent ?? 0}%`, background: '#16a34a', transition: 'width 0.4s' }} title={`Móvil: ${visitorStats?.mobilePercent}%`} />
-                <div style={{ width: `${visitorStats?.desktopPercent ?? 0}%`, background: '#7c3aed', transition: 'width 0.4s' }} title={`Computadora: ${visitorStats?.desktopPercent}%`} />
+                  Todas ({orders.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrdersFilter('pickup')}
+                  style={{
+                    ...styles.filterBtn,
+                    background: ordersFilter === 'pickup' ? '#c25428' : '#ffffff',
+                    color: ordersFilter === 'pickup' ? '#ffffff' : '#27170e',
+                  }}
+                >
+                  Pasar a Buscar ({orders.filter((o) => o.orderType?.includes('Buscar') || o.orderType === 'Para Llevar' || o.orderType === 'Mesa').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrdersFilter('domicilio')}
+                  style={{
+                    ...styles.filterBtn,
+                    background: ordersFilter === 'domicilio' ? '#c25428' : '#ffffff',
+                    color: ordersFilter === 'domicilio' ? '#ffffff' : '#27170e',
+                  }}
+                >
+                  A Domicilio ({orders.filter((o) => o.orderType?.includes('Domicilio')).length})
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Filtros de la Tabla de Visitantes */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '0.85rem' }}>
-            <div style={styles.filterButtonGroup}>
-              <button
-                type="button"
-                onClick={() => setVisitorsFilter('all')}
-                style={{
-                  ...styles.filterBtn,
-                  background: visitorsFilter === 'all' ? '#c25428' : '#ffffff',
-                  color: visitorsFilter === 'all' ? '#ffffff' : '#27170e',
-                }}
-              >
-                Todas las IPs ({visitorStats?.totalIps ?? 0})
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisitorsFilter('mobile')}
-                style={{
-                  ...styles.filterBtn,
-                  background: visitorsFilter === 'mobile' ? '#c25428' : '#ffffff',
-                  color: visitorsFilter === 'mobile' ? '#ffffff' : '#27170e',
-                }}
-              >
-                📱 Solo Móvil ({visitorStats?.mobileCount ?? 0})
-              </button>
-              <button
-                type="button"
-                onClick={() => setVisitorsFilter('desktop')}
-                style={{
-                  ...styles.filterBtn,
-                  background: visitorsFilter === 'desktop' ? '#c25428' : '#ffffff',
-                  color: visitorsFilter === 'desktop' ? '#ffffff' : '#27170e',
-                }}
-              >
-                💻 Solo Computadora ({visitorStats?.desktopCount ?? 0})
-              </button>
-            </div>
-
-            {visitorStats?.lastUpdate && (
-              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
-                🕒 Última actividad registrada: <strong>{visitorStats.lastUpdate}</strong>
-              </span>
-            )}
-          </div>
-
-          {/* Tabla de Visitantes */}
-          <div style={styles.tableResponsive}>
-            <table style={styles.ordersTable}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>#</th>
-                  <th style={styles.th}>IP Pública</th>
-                  <th style={styles.th}>Dispositivo</th>
-                  <th style={styles.th}>Sistema Operativo & Navegador</th>
-                  <th style={styles.th}>Última Entrada (Cancún)</th>
-                  <th style={styles.th}>Primera Entrada</th>
-                  <th style={styles.th}>Visitas</th>
-                  <th style={styles.th}>Última Sección</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredVisitors.length === 0 ? (
+            <div style={styles.tableResponsive}>
+              <table style={styles.ordersTable}>
+                <thead>
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#6b5c52' }}>
-                      <div style={{ fontSize: '1.8rem', marginBottom: '0.4rem' }}>🌐</div>
-                      <strong>No hay registros de visitantes en este filtro.</strong>
-                      <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.3rem' }}>
-                        Al abrir el Menú Digital desde cualquier celular o PC, las IPs públicas y sus dispositivos se registrarán aquí automáticamente.
-                      </div>
-                    </td>
+                    <th style={styles.th}>Folio</th>
+                    <th style={styles.th}>Fecha & Hora</th>
+                    <th style={styles.th}>Modalidad</th>
+                    <th style={styles.th}>Mesa / Cliente</th>
+                    <th style={styles.th}>Comanda / Detalle</th>
+                    <th style={styles.th}>Total de Cuenta</th>
+                    <th style={styles.th}>Canal</th>
                   </tr>
-                ) : (
-                  filteredVisitors.map((vis, idx) => {
-                    const isMobile = (vis.deviceType || '').toLowerCase().includes('móvil') || (vis.deviceType || '').toLowerCase().includes('smartphone');
-                    const isTablet = (vis.deviceType || '').toLowerCase().includes('tablet');
-                    return (
-                      <tr key={vis.ip || idx} style={styles.tr}>
-                        <td style={{ ...styles.td, fontSize: '0.8rem', color: '#888', width: '40px' }}>
-                          #{String(idx + 1).padStart(3, '0')}
+                </thead>
+                <tbody>
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                        No hay pedidos en este filtro.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOrders.map((ord) => (
+                      <tr key={ord.id} style={styles.tr}>
+                        <td style={styles.td}>
+                          <strong>#{ord.folio}</strong>
                         </td>
                         <td style={styles.td}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <code style={{ background: '#f1ece6', padding: '0.18rem 0.45rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.85rem' }}>
-                              {vis.ip}
-                            </code>
-                            {vis.totalVisits > 1 && (
+                          {new Date(ord.createdAt).toLocaleDateString('es-MX', {
+                            day: '2-digit',
+                            month: 'short',
+                          })}{' '}
+                          •{' '}
+                          {new Date(ord.createdAt).toLocaleTimeString('es-MX', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td style={styles.td}>
+                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={styles.orderTypeTag}>{ord.orderType}</span>
+                            {ord.paymentMethod && (
                               <span
                                 style={{
-                                  background: '#dbeafe',
-                                  color: '#1e40af',
-                                  padding: '0.15rem 0.4rem',
-                                  borderRadius: '9999px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
+                                  ...styles.orderTypeTag,
+                                  background: ord.paymentMethod === 'Transferencia' ? '#dbeafe' : '#fef3c7',
+                                  color: ord.paymentMethod === 'Transferencia' ? '#1e40af' : '#92400e',
+                                  borderColor: ord.paymentMethod === 'Transferencia' ? '#bfdbfe' : '#fde68a',
                                 }}
-                                title="Cliente que ha re-ingresado a la plataforma"
                               >
-                                Recurrente
+                                {ord.paymentMethod === 'Transferencia' ? '🏦 Transferencia' : '💵 Efectivo'}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td style={styles.td}>
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              padding: '0.25rem 0.55rem',
-                              borderRadius: '6px',
-                              fontSize: '0.8rem',
-                              fontWeight: 700,
-                              background: isMobile ? '#dcfce7' : isTablet ? '#fef3c7' : '#ede9fe',
-                              color: isMobile ? '#166534' : isTablet ? '#92400e' : '#5b21b6',
-                            }}
-                          >
-                            <span>{isMobile ? '📱' : isTablet ? '📲' : '💻'}</span>
-                            {vis.deviceType || 'Computadora'}
-                          </span>
-                        </td>
-                        <td style={{ ...styles.td, fontSize: '0.83rem', color: '#374151' }}>
-                          <strong>{vis.os || 'Desconocido'}</strong>
-                          <span style={{ color: '#6b7280', display: 'block', fontSize: '0.76rem' }}>
-                            {vis.browser || 'Navegador Web'}
-                          </span>
-                        </td>
-                        <td style={{ ...styles.td, fontSize: '0.83rem' }}>
-                          <strong style={{ color: '#111827' }}>{vis.lastVisit}</strong>
-                        </td>
-                        <td style={{ ...styles.td, fontSize: '0.8rem', color: '#6b7280' }}>
-                          {vis.firstVisit || vis.lastVisit}
+                        <td style={styles.td}>{ord.customerRef}</td>
+                        <td style={{ ...styles.td, maxWidth: '280px', fontSize: '0.8rem', color: '#555' }}>
+                          {ord.itemsSummary || `${ord.itemsCount || 1} artículos`}
                         </td>
                         <td style={styles.td}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              background: vis.totalVisits > 1 ? '#e0f2fe' : '#f3f4f6',
-                              color: vis.totalVisits > 1 ? '#0369a1' : '#374151',
-                              fontWeight: 800,
-                              padding: '0.2rem 0.55rem',
-                              borderRadius: '9999px',
-                              fontSize: '0.78rem',
-                            }}
-                          >
-                            {vis.totalVisits || 1} {vis.totalVisits === 1 ? 'visita' : 'visitas'}
-                          </span>
+                          <strong style={{ color: '#27170e' }}>{formatMoney(ord.orderTotal)}</strong>
                         </td>
-                        <td style={{ ...styles.td, fontSize: '0.8rem', color: '#6b7280' }}>
-                          <code style={{ background: '#f8fafc', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
-                            {vis.lastPath || '/'}
-                          </code>
+                        <td style={styles.td}>
+                          <span style={styles.badgePaid}>📲 Enviado a WhatsApp</span>
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Sección: Monitor de Tráfico en Vivo & Bitácora de Visitantes por IP */}
+        {(activeAdminTab === 'all' || activeAdminTab === 'visitors') && (
+          <section id="section-visitors" style={{ ...styles.tableSection, marginTop: activeAdminTab === 'visitors' ? '0' : '2.5rem' }}>
+            <div style={styles.tableHeaderRow}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <h3 style={styles.sectionHeading}>🌐 Monitor de Tráfico & Bitácora de Visitantes</h3>
+                  <span
+                    style={{
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      padding: '0.2rem 0.65rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    🟢 Registro Activo en logs/visitors.log
+                  </span>
+                </div>
+                <p style={styles.sectionDesc}>
+                  Monitoreo interno de clientes e IPs que acceden al Menú Digital. Si una IP re-ingresa, se actualiza automáticamente su fecha, hora y dispositivo.
+                </p>
+              </div>
+
+              {/* Botones de acción y filtros */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleRefreshVisitors}
+                  disabled={isLoadingVisitors}
+                  style={{
+                    ...styles.actionBtn,
+                    background: '#2563eb',
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.82rem',
+                  }}
+                  title="Volver a leer la bitácora de logs/visitors.log"
+                >
+                  {isLoadingVisitors ? '⏳ Cargando...' : '🔄 Refrescar Accesos'}
+                </button>
+                <a
+                  href="/api/visitors/record?view=raw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    ...styles.actionBtn,
+                    background: '#475569',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.82rem',
+                  }}
+                  title="Abrir el archivo plano de logs/visitors.log"
+                >
+                  📄 Ver Bitácora Cruda (.log)
+                </a>
+              </div>
+            </div>
+
+            {/* Mini Tarjetas de Métricas de Visitantes */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                gap: '1rem',
+                margin: '1.2rem 0 1.5rem 0',
+              }}
+            >
+              <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  👥 IPs Únicas Registradas
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#27170e', marginTop: '0.2rem' }}>
+                  {visitorStats?.totalIps ?? 0}
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                  Visitantes distintos identificados
+                </span>
+              </div>
+
+              <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  🔄 Total de Entradas / Visitas
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', marginTop: '0.2rem' }}>
+                  {visitorStats?.totalVisits ?? 0}
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                  Aperturas y re-ingresos al sitio
+                </span>
+              </div>
+
+              <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  📱 Clientes en Celular (Móvil)
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#16a34a', marginTop: '0.2rem' }}>
+                  {visitorStats?.mobileCount ?? 0}{' '}
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#15803d' }}>
+                    ({visitorStats?.mobilePercent ?? 0}%)
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                  Smartphones Android & iPhone
+                </span>
+              </div>
+
+              <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  💻 Clientes en Computadora
+                </span>
+                <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.2rem' }}>
+                  {visitorStats?.desktopCount ?? 0}{' '}
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#6d28d9' }}>
+                    ({visitorStats?.desktopPercent ?? 0}%)
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                  Escritorio Windows, Mac y Linux
+                </span>
+              </div>
+            </div>
+
+            {/* Barra Visual de Distribución de Dispositivos */}
+            {Boolean(visitorStats?.totalIps) && (
+              <div style={{ marginBottom: '1.5rem', background: '#faf7f2', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #ebd9c5' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', color: '#27170e' }}>
+                  <span>📱 Móvil: {visitorStats?.mobilePercent ?? 0}%</span>
+                  <span>💻 Computadora: {visitorStats?.desktopPercent ?? 0}%</span>
+                </div>
+                <div style={{ height: '10px', width: '100%', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ width: `${visitorStats?.mobilePercent ?? 0}%`, background: '#16a34a', transition: 'width 0.4s' }} title={`Móvil: ${visitorStats?.mobilePercent}%`} />
+                  <div style={{ width: `${visitorStats?.desktopPercent ?? 0}%`, background: '#7c3aed', transition: 'width 0.4s' }} title={`Computadora: ${visitorStats?.desktopPercent}%`} />
+                </div>
+              </div>
+            )}
+
+            {/* Filtros de la Tabla de Visitantes */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '0.85rem' }}>
+              <div style={styles.filterButtonGroup}>
+                <button
+                  type="button"
+                  onClick={() => setVisitorsFilter('all')}
+                  style={{
+                    ...styles.filterBtn,
+                    background: visitorsFilter === 'all' ? '#c25428' : '#ffffff',
+                    color: visitorsFilter === 'all' ? '#ffffff' : '#27170e',
+                  }}
+                >
+                  Todas las IPs ({visitorStats?.totalIps ?? 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisitorsFilter('mobile')}
+                  style={{
+                    ...styles.filterBtn,
+                    background: visitorsFilter === 'mobile' ? '#c25428' : '#ffffff',
+                    color: visitorsFilter === 'mobile' ? '#ffffff' : '#27170e',
+                  }}
+                >
+                  📱 Solo Móvil ({visitorStats?.mobileCount ?? 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisitorsFilter('desktop')}
+                  style={{
+                    ...styles.filterBtn,
+                    background: visitorsFilter === 'desktop' ? '#c25428' : '#ffffff',
+                    color: visitorsFilter === 'desktop' ? '#ffffff' : '#27170e',
+                  }}
+                >
+                  💻 Solo Computadora ({visitorStats?.desktopCount ?? 0})
+                </button>
+              </div>
+
+              {visitorStats?.lastUpdate && (
+                <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                  🕒 Última actividad registrada: <strong>{visitorStats.lastUpdate}</strong>
+                </span>
+              )}
+            </div>
+
+            {/* Tabla de Visitantes */}
+            <div style={styles.tableResponsive}>
+              <table style={styles.ordersTable}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>#</th>
+                    <th style={styles.th}>IP Pública</th>
+                    <th style={styles.th}>Dispositivo</th>
+                    <th style={styles.th}>Sistema Operativo & Navegador</th>
+                    <th style={styles.th}>Última Entrada (Cancún)</th>
+                    <th style={styles.th}>Primera Entrada</th>
+                    <th style={styles.th}>Visitas</th>
+                    <th style={styles.th}>Última Sección</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredVisitors.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#6b5c52' }}>
+                        <div style={{ fontSize: '1.8rem', marginBottom: '0.4rem' }}>🌐</div>
+                        <strong>No hay registros de visitantes en este filtro.</strong>
+                        <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.3rem' }}>
+                          Al abrir el Menú Digital desde cualquier celular o PC, las IPs públicas y sus dispositivos se registrarán aquí automáticamente.
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredVisitors.map((vis, idx) => {
+                      const isMobile = (vis.deviceType || '').toLowerCase().includes('móvil') || (vis.deviceType || '').toLowerCase().includes('smartphone');
+                      const isTablet = (vis.deviceType || '').toLowerCase().includes('tablet');
+                      return (
+                        <tr key={vis.ip || idx} style={styles.tr}>
+                          <td style={{ ...styles.td, fontSize: '0.8rem', color: '#888', width: '40px' }}>
+                            #{String(idx + 1).padStart(3, '0')}
+                          </td>
+                          <td style={styles.td}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <code style={{ background: '#f1ece6', padding: '0.18rem 0.45rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.85rem' }}>
+                                {vis.ip}
+                              </code>
+                              {vis.totalVisits > 1 && (
+                                <span
+                                  style={{
+                                    background: '#dbeafe',
+                                    color: '#1e40af',
+                                    padding: '0.15rem 0.4rem',
+                                    borderRadius: '9999px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                  }}
+                                  title="Cliente que ha re-ingresado a la plataforma"
+                                >
+                                  Recurrente
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.25rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                background: isMobile ? '#dcfce7' : isTablet ? '#fef3c7' : '#ede9fe',
+                                color: isMobile ? '#166534' : isTablet ? '#92400e' : '#5b21b6',
+                              }}
+                            >
+                              <span>{isMobile ? '📱' : isTablet ? '📲' : '💻'}</span>
+                              {vis.deviceType || 'Computadora'}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, fontSize: '0.83rem', color: '#374151' }}>
+                            <strong>{vis.os || 'Desconocido'}</strong>
+                            <span style={{ color: '#6b7280', display: 'block', fontSize: '0.76rem' }}>
+                              {vis.browser || 'Navegador Web'}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, fontSize: '0.83rem' }}>
+                            <strong style={{ color: '#111827' }}>{vis.lastVisit}</strong>
+                          </td>
+                          <td style={{ ...styles.td, fontSize: '0.8rem', color: '#6b7280' }}>
+                            {vis.firstVisit || vis.lastVisit}
+                          </td>
+                          <td style={styles.td}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                background: vis.totalVisits > 1 ? '#e0f2fe' : '#f3f4f6',
+                                color: vis.totalVisits > 1 ? '#0369a1' : '#374151',
+                                fontWeight: 800,
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.78rem',
+                              }}
+                            >
+                              {vis.totalVisits || 1} {vis.totalVisits === 1 ? 'visita' : 'visitas'}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, fontSize: '0.8rem', color: '#6b7280' }}>
+                            <code style={{ background: '#f8fafc', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
+                              {vis.lastPath || '/'}
+                            </code>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Modal de Detalle de Recibo de Pago Mensual */}
@@ -2239,6 +2451,141 @@ const styles = {
     fontSize: '0.85rem',
     cursor: 'pointer',
     padding: '0.5rem',
+  },
+
+  // Barra de Menú de Secciones del Administrador
+  adminNavBar: {
+    background: '#ffffff',
+    borderBottom: '2px solid #ebd9c5',
+    position: 'sticky',
+    top: 0,
+    zIndex: 90,
+    boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+  },
+  navContainer: {
+    maxWidth: '1280px',
+    margin: '0 auto',
+    padding: '0.65rem 1.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    flexWrap: 'wrap',
+  },
+  navHeaderInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  },
+  navMenuBadge: {
+    fontSize: '0.72rem',
+    fontWeight: 800,
+    letterSpacing: '0.08em',
+    color: '#8c5936',
+    textTransform: 'uppercase',
+    background: '#fef3e7',
+    padding: '0.2rem 0.55rem',
+    borderRadius: '6px',
+    border: '1px solid #fed7aa',
+  },
+  navTabsList: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.45rem',
+    overflowX: 'auto',
+    whiteSpace: 'nowrap',
+    padding: '0.2rem 0',
+    maxWidth: '100%',
+  },
+  navTabBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.45rem',
+    background: '#faf7f2',
+    border: '1px solid #ebd9c5',
+    color: '#4a3b32',
+    padding: '0.5rem 0.95rem',
+    borderRadius: '10px',
+    fontSize: '0.84rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'all 0.18s ease',
+  },
+  navTabBtnActive: {
+    background: '#c25428',
+    color: '#ffffff',
+    borderColor: '#b04920',
+    boxShadow: '0 3px 10px rgba(194, 84, 40, 0.28)',
+  },
+  navTabBadge: {
+    fontSize: '0.72rem',
+    fontWeight: 800,
+    padding: '0.12rem 0.45rem',
+    borderRadius: '9999px',
+    display: 'inline-block',
+  },
+  quickJumpBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    flexWrap: 'wrap',
+    background: '#faf7f2',
+    border: '1px solid #ebd9c5',
+    borderRadius: '10px',
+    padding: '0.6rem 1rem',
+    marginBottom: '1.5rem',
+  },
+  quickJumpLabel: {
+    fontSize: '0.8rem',
+    color: '#6b5c52',
+    fontWeight: 700,
+  },
+  quickJumpBtn: {
+    background: '#ffffff',
+    border: '1px solid #d1c7bc',
+    color: '#27170e',
+    padding: '0.3rem 0.75rem',
+    borderRadius: '8px',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  },
+  activeSectionBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: '0.75rem',
+    background: '#ffffff',
+    border: '1px solid #ebd9c5',
+    borderRadius: '12px',
+    padding: '0.85rem 1.25rem',
+    marginBottom: '1.5rem',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+  },
+  activeSectionKicker: {
+    fontSize: '0.72rem',
+    color: '#8c5936',
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    display: 'block',
+  },
+  activeSectionTitle: {
+    margin: '0.15rem 0 0 0',
+    fontSize: '1.1rem',
+    fontWeight: 800,
+    color: '#27170e',
+  },
+  viewAllSectionsBtn: {
+    background: '#f4ede4',
+    border: '1px solid #ebd9c5',
+    color: '#27170e',
+    padding: '0.45rem 0.85rem',
+    borderRadius: '8px',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    cursor: 'pointer',
   },
 
   mainContent: {
