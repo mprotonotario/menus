@@ -177,6 +177,12 @@ export default function CartDrawer() {
 
     const encoded = encodeURIComponent(msg);
     window.open(`https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encoded}`, '_blank');
+
+    // Limpiar comanda y reiniciar formulario
+    clearCart();
+    setStep(1);
+    setFormError('');
+    setIsCartOpen(false);
   };
 
   return (
