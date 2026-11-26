@@ -9,7 +9,7 @@ export default function Hero() {
   const { businessData: BUSINESS_DATA, products: MENU_ITEMS } = useMenuData();
   const heroData = BUSINESS_DATA.hero || {};
 
-  // Find featured 3D dish from menuData
+  // Find featured 3D dish from products.json
   const heroDish =
     MENU_ITEMS.find((item) => item.destacadoHero) ||
     MENU_ITEMS.find((item) => item.id === 'frio-1') ||

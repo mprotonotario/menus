@@ -1,4 +1,4 @@
-import { BUSINESS_DATA } from '../data/menuData';
+import billingData from '../../data/billing.json';
 
 const ORDERS_KEY = 'mb_restaurant_orders';
 const BILLING_HISTORY_KEY = 'mb_restaurant_billing_history';
@@ -6,8 +6,9 @@ const BILLING_HISTORY_KEY = 'mb_restaurant_billing_history';
 // Configuración por defecto
 const getPlatformBillingConfig = () => {
   return (
-    BUSINESS_DATA.platformBilling || {
-      commissionPerOrder: 3,
+    billingData || {
+      monthlyFee: 300,
+      commissionPerOrder: 0,
       currency: 'MXN',
       cycleDays: 30,
       ownerPin: '2026',

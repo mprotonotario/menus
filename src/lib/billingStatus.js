@@ -1,4 +1,5 @@
-import { BUSINESS_DATA } from '../data/menuData';
+import billingData from '../../data/billing.json';
+import brandData from '../../data/brand.json';
 
 const RUNTIME_OVERRIDE_KEY = 'mb_billing_runtime_override';
 const TIMEZONE = 'America/Cancun';
@@ -59,7 +60,7 @@ export function getDiffDaysInCancun(targetIsoDate) {
  * Obtener configuración activa con soporte para sobreescrituras en vivo (renovaciones)
  */
 export function getEffectiveBillingConfig() {
-  const baseConfig = BUSINESS_DATA.platformBilling || {
+  const baseConfig = billingData || {
     commissionPerOrder: 0,
     monthlyFee: 300,
     currency: 'MXN',
@@ -256,7 +257,7 @@ export function evaluateBillingStatus(customConfig = null) {
 export function generateTelegramAdminNotification(statusData = null, directWhatsappUrl = '') {
   const data = statusData || evaluateBillingStatus();
   const payment = data.paymentInfo || {};
-  const businessName = BUSINESS_DATA.brand?.name || 'Cafetería Demo';
+  const businessName = brandData.brand?.name || brandData.name || 'Cafetería Demo';
   const phone = data.billingPhone || '529831226847';
 
   const titleHeader = data.isFirstPaidMonth
@@ -351,7 +352,7 @@ export function generateWhatsappReminderMessage(statusData = null) {
   const data = statusData || evaluateBillingStatus();
   const payment = data.paymentInfo || {};
   const isOnlinePaymentEnabled = payment.enablePaymentLink === true && Boolean(payment.paymentLink);
-  const businessName = BUSINESS_DATA.brand?.name || 'Cafetería Demo';
+  const businessName = brandData.brand?.name || brandData.name || 'Cafetería Demo';
   const company = data.companyName || 'RedaySoft Soluciones Digitales';
 
   if (data.isFirstPaidMonth) {

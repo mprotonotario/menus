@@ -133,7 +133,7 @@ async function handleCron(request) {
           directWhatsappUrl,
           telegramStatus: telegramResult || (dispatchMethod === 'telegram_credentials_pending' ? {
             success: false,
-            note: 'Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en docker-compose.yml o menuData.js para recibir la notificación automática en tu Telegram',
+            note: 'Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en docker-compose.yml o data/billing.json para recibir la notificación automática en tu Telegram',
           } : null),
           telegramMessagePreview: telegramMessage ? telegramMessage.slice(0, 150) + '...' : null,
           whatsappMessageForClient: formattedMessage,

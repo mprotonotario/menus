@@ -72,31 +72,37 @@ menus/
     │   ├── LocationSection.jsx  # Ubicación, mapa Google y horario en vivo
     │   ├── Footer.jsx           # Pie de página y enlace a https://redaysoft.com
     │   └── Toast.jsx            # Notificaciones flotantes
-    ├── context/
-    │   └── CartContext.jsx      # Estado global del carrito y sincronización con localStorage
-    └── data/
-        └── menuData.js          # Base de datos local: BUSINESS_DATA, MENU_CATEGORIES y MENU_ITEMS
+├── data/                        # Configuración y datos desacoplados en archivos JSON
+│   ├── brand.json               # Identidad de marca, logo, hero, títulos
+│   ├── products.json            # Catálogo de platillos, precios, imágenes, opciones
+│   ├── categories.json          # Categorías y filtros del menú
+│   ├── billing.json             # Suscripción mensual, cuota, cortesía, pagos por adelantado
+│   ├── location.json            # Horarios, estado abierto/cerrado, dirección, mapas
+│   ├── contact.json             # WhatsApp, teléfonos, delivery y métodos de pago
+│   └── about.json               # Historia, valores y estadísticas
+└── src/
+    ├── app/
+    │   ├── layout.jsx           # Layout raíz con metadata, viewport y Google Fonts
+    │   ├── page.jsx             # Vista principal que orquesta los componentes
+    │   ├── admin/page.jsx       # Panel de control de facturación y comandas
+    │   └── globals.css          # Sistema de diseño, animaciones y CSS responsivo
+    ├── components/              # Componentes de UI (Header, Hero, Specials, etc.)
+    ├── context/                 # Contextos de React (MenuDataContext, CartContext)
+    └── utils/                   # Utilidades puras (formatUtils, scheduleUtils, orderStorage)
 ```
 
 ---
 
-## 📦 Base de Datos Dinámica (`src/data/menuData.js`)
+## 📦 Base de Datos y Configuración Modular (`/data/*.json`)
 
-Todos los datos se administran de manera centralizada desde `src/data/menuData.js`:
-- **Subcategorías:**
-  - 🍳 *Huevos al Gusto*
-  - 🍔 *Hamburguesas & Sandwiches*
-  - 🥤 *Jugos & Bebidas Naturales*
-  - ☕ *Café (Caliente)*
-  - 🧊 *Bebidas Frías & Frappés*
-  - 🥗 *Crepas & Antojos Salados*
-  - 🥐 *Panadería Artesanal & Waffles*
-  - 🍰 *Postres & Dulce Tradición*
-  - 🎁 *Combos & Paquetes*
-- **Configuración del Negocio (`BUSINESS_DATA`):**
-  - Horarios con cálculo automático en vivo de *Abierto/Cerrado* (`computeLiveBusinessStatus`).
-  - Teléfono, WhatsApp, enlaces de redes sociales y dirección en Chetumal, Quintana Roo.
-  - Textos de portada e información de marca.
+Todos los datos se administran de manera directa y desacoplada desde los archivos JSON en `/data`:
+- **`data/brand.json`**: Nombre del negocio, logo, título, subtítulos y copy del banner principal.
+- **`data/products.json`**: Catálogo completo de platillos, precios, imágenes y modificadores.
+- **`data/categories.json`**: Categorías del menú y etiquetas.
+- **`data/billing.json`**: Configuración de facturación (cuota mensual, primer mes gratis, ciclo de cobro por adelantado, cuenta SPEI).
+- **`data/location.json`**: Horarios comerciales, modo manual/automático y ubicación.
+- **`data/contact.json`**: Costo de envío a domicilio, número de WhatsApp para comandas y formas de pago.
+- **`data/about.json`**: Métricas y datos de la empresa.
 
 ---
 

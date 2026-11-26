@@ -3,7 +3,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { useMenuData } from '../context/MenuDataContext';
-import { isScheduleForDay } from '../data/menuData';
+import { isScheduleForDay } from '../utils/scheduleUtils';
 
 export default function LocationSection() {
   const { businessData: BUSINESS_DATA } = useMenuData();

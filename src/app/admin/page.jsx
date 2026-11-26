@@ -3,7 +3,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useMenuData } from '../../context/MenuDataContext';
-import { BUSINESS_DATA, formatMoney } from '../../data/menuData';
+import billingData from '../../../data/billing.json';
+import brandData from '../../../data/brand.json';
+import locationData from '../../../data/location.json';
+import contactData from '../../../data/contact.json';
+import { formatMoney } from '../../utils/formatUtils';
 import {
   getStoredOrders,
   getBillingSummary,
@@ -20,7 +24,7 @@ import { REDAYSOFT_BADGE_BASE64 } from '../../assets/logoBase64';
 
 export default function AdminBillingPage() {
   const { businessData } = useMenuData();
-  const billingConfig = businessData?.platformBilling || BUSINESS_DATA.platformBilling || {
+  const billingConfig = businessData?.platformBilling || billingData || {
     commissionPerOrder: 0,
     monthlyFee: 300,
     currency: 'MXN',
@@ -343,11 +347,11 @@ export default function AdminBillingPage() {
   <div class="info-grid">
     <div class="info-col">
       <div class="info-heading">DATOS DEL ESTABLECIMIENTO / CLIENTE</div>
-      <div class="info-line">Establecimiento: <strong>${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</strong></div>
-      <div class="info-line">Razón Comercial: <strong>${BUSINESS_DATA.tradeName || 'María Bonita Cafetería & Panadería'}</strong></div>
-      <div class="info-line">Dirección: <strong>${BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}</strong></div>
-      <div class="info-line">Ciudad: <strong>${BUSINESS_DATA.location?.cityZone || '77000 Chetumal, Quintana Roo'}</strong></div>
-      <div class="info-line">Teléfono / WhatsApp: <strong>+${BUSINESS_DATA.contact?.whatsappRaw || '529831226847'}</strong></div>
+      <div class="info-line">Establecimiento: <strong>${businessData?.brand?.name || brandData.brand?.name || 'Cafetería Demo'}</strong></div>
+      <div class="info-line">Razón Comercial: <strong>${businessData?.tradeName || brandData.tradeName || 'Cafetería Demo • Menú Digital'}</strong></div>
+      <div class="info-line">Dirección: <strong>${businessData?.location?.address || locationData.location?.address || 'Av. Álvaro Obregón #168, Col. Centro'}</strong></div>
+      <div class="info-line">Ciudad: <strong>${businessData?.location?.cityZone || locationData.location?.cityZone || '77000 Chetumal, Quintana Roo'}</strong></div>
+      <div class="info-line">Teléfono / WhatsApp: <strong>+${businessData?.contact?.whatsappRaw || contactData.contact?.whatsappRaw || '529831226847'}</strong></div>
     </div>
     <div class="info-col">
       <div class="info-heading">DATOS DE LA LIQUIDACIÓN</div>
@@ -373,7 +377,7 @@ export default function AdminBillingPage() {
       <tr>
         <td style="text-align: center; font-weight: 700;">1 Mes</td>
         <td>
-          <div class="concept-title">Membresía Mensual - Plataforma Menú Digital María Bonita</div>
+          <div class="concept-title">Membresía Mensual - Plataforma Menú Digital ${businessData?.brand?.name || brandData.brand?.name || 'Cafetería Demo'}</div>
           <div class="concept-desc">
             • Servicio de Menú Digital interactivo en la nube disponible 24/7 para comensales en salón y pedidos para llevar.<br>
             • Recepción ilimitada de comandas automáticas estructuradas directamente a WhatsApp del restaurante.<br>
@@ -438,7 +442,7 @@ export default function AdminBillingPage() {
   </div>
 
   <div class="footer-note">
-    Gracias por tu preferencia. Este comprobante avala la cobertura mensual del servicio de Menú Digital contratado para <strong>${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</strong>. Soporte técnico y atención personalizada: <strong>soporte@redaysoft.com</strong> • WhatsApp: <strong>+52 983 122 6847</strong>.
+    Gracias por tu preferencia. Este comprobante avala la cobertura mensual del servicio de Menú Digital contratado para <strong>${businessData?.brand?.name || brandData.brand?.name || 'Cafetería Demo'}</strong>. Soporte técnico y atención personalizada: <strong>soporte@redaysoft.com</strong> • WhatsApp: <strong>+52 983 122 6847</strong>.
   </div>
 </body>
 </html>
@@ -726,7 +730,7 @@ export default function AdminBillingPage() {
       <header style={styles.headerBar}>
         <div style={styles.headerLeft}>
           <div style={styles.brandBadge}>
-            ☕ <strong>{BUSINESS_DATA.brand?.name || 'Cafetería Demo'}</strong>
+            ☕ <strong>{businessData?.brand?.name || brandData.brand?.name || 'Cafetería Demo'}</strong>
           </div>
           <span style={styles.headerDivider}>|</span>
           <span style={styles.headerPortalTag}>Portal de Suscripción & Facturación Mensual</span>
@@ -1377,7 +1381,7 @@ export default function AdminBillingPage() {
               <div style={styles.receiptGrid}>
                 <div>
                   <span style={styles.receiptMetaLabel}>Cliente / Establecimiento:</span>
-                  <p style={styles.receiptMetaVal}>{BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}</p>
+                  <p style={styles.receiptMetaVal}>{businessData?.brand?.name || brandData.brand?.name || 'Cafetería Demo'}</p>
                 </div>
                 <div>
                   <span style={styles.receiptMetaLabel}>Fecha de Liquidación:</span>

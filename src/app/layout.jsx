@@ -1,13 +1,14 @@
 import './globals.css';
 import { MenuDataProvider } from '../context/MenuDataContext';
 import { CartProvider } from '../context/CartContext';
-import { BUSINESS_DATA } from '../data/menuData';
+import brandData from '../../data/brand.json';
 
 export const metadata = {
-  title: `${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'} | Menú Digital & Desayunos de Autor`,
+  title: `${brandData.brand?.name || brandData.name || 'Cafetería Demo'} | Menú Digital & Pedidos Online`,
   description:
-    BUSINESS_DATA.hero?.subtitle ||
-    'Disfruta de café de especialidad, panadería artesanal de masa madre horneada al alba y cocina de autor mexicana.',
+    brandData.hero?.subtitle ||
+    brandData.subheadline ||
+    'Disfruta de café de especialidad, bebidas y platillos preparados con pedidos por WhatsApp.',
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>",
   },

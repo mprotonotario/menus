@@ -2,7 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useMenuData } from './MenuDataContext';
-import { BUSINESS_DATA, computeLiveBusinessStatus, formatMoney } from '../data/menuData';
+import locationData from '../../data/location.json';
+import { computeLiveBusinessStatus } from '../utils/scheduleUtils';
+import { formatMoney } from '../utils/formatUtils';
 
 const CartContext = createContext(null);
 
@@ -26,7 +28,7 @@ export function CartProvider({ children }) {
     }
 
     const updateStatus = () => {
-      setLiveStatus(computeLiveBusinessStatus(businessData || BUSINESS_DATA));
+      setLiveStatus(computeLiveBusinessStatus(businessData || locationData));
     };
     updateStatus();
     const timer = setInterval(updateStatus, 60000);

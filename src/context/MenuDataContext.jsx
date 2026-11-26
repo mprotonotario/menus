@@ -1,12 +1,57 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import {
-  BUSINESS_DATA as staticBusinessData,
-  CAFE_INFO as staticCafeInfo,
-  MENU_CATEGORIES as staticCategories,
-  MENU_ITEMS as staticProducts,
-} from '../data/menuData';
+import categoriesData from '../../data/categories.json';
+import productsData from '../../data/products.json';
+import brandData from '../../data/brand.json';
+import locationData from '../../data/location.json';
+import contactData from '../../data/contact.json';
+import aboutData from '../../data/about.json';
+import billingData from '../../data/billing.json';
+
+const staticCategories = categoriesData;
+const staticProducts = productsData;
+
+const staticBusinessData = {
+  brand: brandData.brand || {},
+  logo: brandData.logo || brandData.brand?.logo || '',
+  hero: brandData.hero || {},
+  name: brandData.name || brandData.brand?.name || 'Cafetería Demo',
+  tradeName: brandData.tradeName || brandData.brand?.tradeName || 'Cafetería Demo • Menú Digital',
+  slogan: brandData.slogan || brandData.brand?.slogan || '',
+  subheadline: brandData.subheadline || brandData.brand?.subheadline || '',
+  location: locationData.location || {},
+  mapPin: locationData.mapPin || {},
+  hours: locationData.hours || [],
+  scheduleStatus: locationData.scheduleStatus || { mode: 'auto' },
+  topNotice: locationData.topNotice || {},
+  contact: contactData.contact || {},
+  socials: contactData.socials || {},
+  paymentConfig: contactData.paymentConfig || { allowTransfer: true, allowCash: true },
+  deliveryConfig: contactData.deliveryConfig || locationData.deliveryConfig || { deliveryFee: 35, enabled: true },
+  menuSection: brandData.menuSection || {
+    pretitle: '— NUESTRO MENÚ DEMO',
+    titleHtml: 'Sabores para disfrutar <br /><em>en cada</em> momento.',
+    title: 'Sabores para disfrutar en cada momento.',
+    description: brandData.menuSubtitle || brandData.menuSection?.description || 'Café, bebidas y alimentos preparados para acompañar cada visita a nuestra cafetería demo.',
+  },
+  menuSubtitle: brandData.menuSubtitle || brandData.menuSection?.description || 'Café, bebidas y alimentos preparados para acompañar cada visita a nuestra cafetería demo.',
+  stats: aboutData.stats || [],
+  platformBilling: billingData || {},
+};
+
+const staticCafeInfo = {
+  ...staticBusinessData,
+  phone: staticBusinessData.contact?.phoneDisplay,
+  whatsapp: staticBusinessData.contact?.whatsappNumber,
+  whatsappDisplay: staticBusinessData.contact?.phoneDisplay,
+  email: staticBusinessData.contact?.email,
+  address: staticBusinessData.location?.address,
+  reference: staticBusinessData.location?.reference,
+  hours: staticBusinessData.hours,
+  stats: staticBusinessData.stats,
+  socials: staticBusinessData.socials,
+};
 
 const MenuDataContext = createContext({
   categories: staticCategories,

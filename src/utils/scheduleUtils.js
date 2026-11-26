@@ -1,79 +1,3 @@
-/**
- * Menú Digital & Configuración Modularizada
- * Los datos se encuentran estructurados y desacoplados en la carpeta /data/:
- * - data/categories.json (Categorías del menú)
- * - data/products.json (Platillos, precios, imágenes, opciones)
- * - data/brand.json (Identidad de marca, hero, títulos)
- * - data/location.json (Dirección, horarios, estado abierto/cerrado)
- * - data/contact.json (Teléfonos, WhatsApp, correo, redes)
- * - data/about.json (Nuestra historia, métricas, valores)
- * - data/billing.json (Facturación, comisiones, corte, PIN)
- */
-
-import categoriesData from '../../data/categories.json';
-import productsData from '../../data/products.json';
-import brandData from '../../data/brand.json';
-import locationData from '../../data/location.json';
-import contactData from '../../data/contact.json';
-import aboutData from '../../data/about.json';
-import billingData from '../../data/billing.json';
-
-const MENU_CATEGORIES = categoriesData;
-const MENU_ITEMS = productsData;
-
-const BUSINESS_DATA = {
-  brand: brandData.brand || {},
-  logo: brandData.logo || brandData.brand?.logo || '',
-  hero: brandData.hero || {},
-  name: brandData.name || brandData.brand?.name || 'Cafetería Demo',
-  tradeName: brandData.tradeName || brandData.brand?.tradeName || 'Cafetería Demo • Menú Digital',
-  slogan: brandData.slogan || brandData.brand?.slogan || '',
-  subheadline: brandData.subheadline || brandData.brand?.subheadline || '',
-  location: locationData.location || {},
-  mapPin: locationData.mapPin || {},
-  hours: locationData.hours || [],
-  scheduleStatus: locationData.scheduleStatus || { mode: 'auto' },
-  topNotice: locationData.topNotice || {},
-  contact: contactData.contact || {},
-  socials: contactData.socials || {},
-  paymentConfig: contactData.paymentConfig || { allowTransfer: true, allowCash: true },
-  deliveryConfig: contactData.deliveryConfig || locationData.deliveryConfig || { deliveryFee: 35, enabled: true },
-  menuSection: brandData.menuSection || {
-    pretitle: '— NUESTRO MENÚ DEMO',
-    titleHtml: 'Sabores para disfrutar <br /><em>en cada</em> momento.',
-    title: 'Sabores para disfrutar en cada momento.',
-    description: brandData.menuSubtitle || brandData.menuSection?.description || 'Café, bebidas y alimentos preparados para acompañar cada visita a nuestra cafetería demo.',
-  },
-  menuSubtitle: brandData.menuSubtitle || brandData.menuSection?.description || 'Café, bebidas y alimentos preparados para acompañar cada visita a nuestra cafetería demo.',
-  stats: aboutData.stats || [],
-  platformBilling: billingData || {},
-};
-
-// Objeto para compatibilidad total con código existente
-const CAFE_INFO = {
-  ...BUSINESS_DATA,
-  phone: BUSINESS_DATA.contact?.phoneDisplay,
-  whatsapp: BUSINESS_DATA.contact?.whatsappNumber,
-  whatsappDisplay: BUSINESS_DATA.contact?.phoneDisplay,
-  email: BUSINESS_DATA.contact?.email,
-  address: BUSINESS_DATA.location?.address,
-  reference: BUSINESS_DATA.location?.reference,
-  hours: BUSINESS_DATA.hours,
-  stats: BUSINESS_DATA.stats,
-  socials: BUSINESS_DATA.socials,
-};
-
-// Exposición global para depuración o consumo dinámico
-if (typeof window !== 'undefined') {
-  window.BUSINESS_DATA = BUSINESS_DATA;
-  window.CAFE_INFO = CAFE_INFO;
-}
-
-export function formatMoney(amount) {
-  if (typeof amount !== 'number') return '$0.00';
-  return '$' + amount.toFixed(2);
-}
-
 export function parseTimeToMinutes(timeStr) {
   if (!timeStr || typeof timeStr !== 'string') return null;
   const cleaned = timeStr.trim().toLowerCase();
@@ -219,7 +143,6 @@ export function computeLiveBusinessStatus(hoursOrBusinessData) {
     if (closeMin > openMin) {
       isOpen = currentMinutes >= openMin && currentMinutes < closeMin;
     } else {
-      // Horarios cruzando medianoche
       isOpen = currentMinutes >= openMin || currentMinutes < closeMin;
     }
 
@@ -241,10 +164,3 @@ export function computeLiveBusinessStatus(hoursOrBusinessData) {
     closingText: 'Servicio activo',
   };
 }
-
-export {
-  BUSINESS_DATA,
-  CAFE_INFO,
-  MENU_CATEGORIES,
-  MENU_ITEMS,
-};
