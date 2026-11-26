@@ -1,4 +1,5 @@
 {
+  "$schema": "./billing.schema.json",
   "monthlyFee": 300,
   "currency": "MXN",
   "commissionPerOrder": 0,
