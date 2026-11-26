@@ -17,5 +17,10 @@
   "paymentConfig": {
     "allowTransfer": true,
     "allowCash": true
+  },
+  "deliveryConfig": {
+    "deliveryFee": 35,
+    "enabled": true,
+    "label": "Envío a domicilio"
   }
 }

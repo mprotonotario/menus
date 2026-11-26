@@ -30,6 +30,13 @@ export default function CartDrawer() {
   const [billingStatus, setBillingStatus] = useState(null);
 
   const allowTransfer = BUSINESS_DATA?.paymentConfig?.allowTransfer !== false;
+  const deliveryConfig = BUSINESS_DATA?.deliveryConfig || {};
+  const deliveryFee = typeof deliveryConfig.deliveryFee === 'number'
+    ? deliveryConfig.deliveryFee
+    : (Number(deliveryConfig.deliveryFee) || 35);
+  const isDelivery = orderType === 'delivery';
+  const currentShippingFee = isDelivery ? deliveryFee : 0;
+  const orderFinalTotal = cartSubtotal + currentShippingFee;
 
   useEffect(() => {
     if (cart.length === 0 && step !== 1) {
@@ -145,7 +152,13 @@ export default function CartDrawer() {
       }
     });
 
-    msg += `\n*Total a pagar:* ${formatMoney(cartSubtotal)} MXN\n\n`;
+    if (orderType === 'delivery') {
+      msg += `\n*Subtotal estimado:* ${formatMoney(cartSubtotal)} MXN\n`;
+      msg += `*Costo de envío a domicilio:* ${formatMoney(deliveryFee)} MXN\n`;
+      msg += `*Total a pagar:* ${formatMoney(orderFinalTotal)} MXN\n\n`;
+    } else {
+      msg += `\n*Total a pagar:* ${formatMoney(orderFinalTotal)} MXN\n\n`;
+    }
     msg += `¿Me podrían confirmar si tienen todo disponible y el tiempo aproximado para tenerlo listo? ¡Muchas gracias!\n\n`;
     msg += `_Este mensaje fue generado por la plataforma de Menú Digital_`;
 
@@ -156,7 +169,7 @@ export default function CartDrawer() {
         customerRef: customerName.trim() + (orderType === 'delivery' ? ` — ${deliveryAddress.trim()}` : ''),
         paymentMethod: paymentMethod === 'transferencia' ? 'Transferencia' : 'Efectivo',
         items: cart,
-        total: cartSubtotal,
+        total: orderFinalTotal,
       });
     } catch (e) {
       console.warn('Error recording order:', e);
@@ -393,7 +406,7 @@ export default function CartDrawer() {
                       setFormError('');
                     }}
                   >
-                    🛵 A Domicilio
+                    🛵 A Domicilio {deliveryFee > 0 && `(+${formatMoney(deliveryFee)})`}
                   </button>
                 </div>
 
@@ -419,9 +432,14 @@ export default function CartDrawer() {
                 {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
                 {orderType === 'delivery' ? (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <label className="order-type-label" style={{ marginBottom: '0.25rem' }}>
-                      <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <label className="order-type-label" style={{ margin: 0 }}>
+                        <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
+                      </label>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--terracotta-600)', background: 'var(--cream-200)', padding: '0.15rem 0.45rem', borderRadius: '5px' }}>
+                        Envío: +{formatMoney(deliveryFee)} MXN
+                      </span>
+                    </div>
                     <input
                       type="text"
                       className="table-input-field"
@@ -542,13 +560,22 @@ export default function CartDrawer() {
                   <span>Subtotal estimado:</span>
                   <span>{formatMoney(cartSubtotal)}</span>
                 </div>
-                <div className="cart-summary-line">
-                  <span>Envase / Servicio:</span>
-                  <span style={{ color: '#15803d', fontWeight: 700 }}>Gratis</span>
-                </div>
+                {orderType === 'delivery' ? (
+                  <div className="cart-summary-line">
+                    <span>Costo de envío a domicilio:</span>
+                    <span style={{ color: 'var(--terracotta-600)', fontWeight: 700 }}>
+                      +{formatMoney(deliveryFee)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="cart-summary-line">
+                    <span>Envase / Recolección en barra:</span>
+                    <span style={{ color: '#15803d', fontWeight: 700 }}>Gratis</span>
+                  </div>
+                )}
                 <div className="cart-summary-line total">
                   <span>Total a pagar:</span>
-                  <span>{formatMoney(cartSubtotal)} MXN</span>
+                  <span>{formatMoney(orderFinalTotal)} MXN</span>
                 </div>
 
                 {isSuspended ? (

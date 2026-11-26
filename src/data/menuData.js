@@ -36,6 +36,7 @@ const BUSINESS_DATA = {
   contact: contactData.contact || {},
   socials: contactData.socials || {},
   paymentConfig: contactData.paymentConfig || { allowTransfer: true, allowCash: true },
+  deliveryConfig: contactData.deliveryConfig || locationData.deliveryConfig || { deliveryFee: 35, enabled: true },
   stats: aboutData.stats || [],
   platformBilling: billingData || {},
 };

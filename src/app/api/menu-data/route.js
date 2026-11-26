@@ -43,6 +43,7 @@ export async function GET() {
       contact: contact.contact || {},
       socials: contact.socials || {},
       paymentConfig: contact.paymentConfig || { allowTransfer: true, allowCash: true },
+      deliveryConfig: contact.deliveryConfig || location.deliveryConfig || { deliveryFee: 35, enabled: true },
       stats: about.stats || [],
       platformBilling: billing,
     };
