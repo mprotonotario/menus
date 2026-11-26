@@ -13,6 +13,7 @@ services:
       - ./assets:/app/assets
       - ./assets:/app/public/assets
       - ./data:/app/data
+      - ./logs:/app/logs
       - ./next.config.js:/app/next.config.js
     command: ["sh", "-c", "npm run build && npm start"]
     env_file:

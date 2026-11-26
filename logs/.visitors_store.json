@@ -1,0 +1,24 @@
+{
+  "187.190.45.12": {
+    "ip": "187.190.45.12",
+    "firstVisit": "2026-11-26 12:38:54",
+    "lastVisit": "2026-11-26 12:38:54",
+    "deviceType": "Móvil (Smartphone)",
+    "os": "Android 14",
+    "browser": "Google Chrome",
+    "deviceSummary": "Móvil (Smartphone) | Android 14 (Google Chrome)",
+    "totalVisits": 2,
+    "lastPath": "/#menu"
+  },
+  "200.68.138.5": {
+    "ip": "200.68.138.5",
+    "firstVisit": "2026-11-26 12:38:54",
+    "lastVisit": "2026-11-26 12:38:54",
+    "deviceType": "Computadora (Escritorio)",
+    "os": "Windows 10/11",
+    "browser": "Google Chrome",
+    "deviceSummary": "Computadora (Escritorio) | Windows 10/11 (Google Chrome)",
+    "totalVisits": 1,
+    "lastPath": "/"
+  }
+}

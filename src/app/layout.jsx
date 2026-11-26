@@ -1,6 +1,7 @@
 import './globals.css';
 import { MenuDataProvider } from '../context/MenuDataContext';
 import { CartProvider } from '../context/CartContext';
+import VisitorTracker from '../components/VisitorTracker';
 import brandData from '../../data/brand.json';
 
 export const metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <VisitorTracker />
         <MenuDataProvider>
           <CartProvider>
             {children}
