@@ -37,6 +37,13 @@ const BUSINESS_DATA = {
   socials: contactData.socials || {},
   paymentConfig: contactData.paymentConfig || { allowTransfer: true, allowCash: true },
   deliveryConfig: contactData.deliveryConfig || locationData.deliveryConfig || { deliveryFee: 35, enabled: true },
+  menuSection: brandData.menuSection || {
+    pretitle: '— NUESTRO MENÚ',
+    titleHtml: 'Sabores para disfrutar <br /><em>en cada</em> momento.',
+    title: 'Sabores para disfrutar en cada momento.',
+    description: brandData.menuSubtitle || 'Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita.',
+  },
+  menuSubtitle: brandData.menuSubtitle || brandData.menuSection?.description || 'Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita.',
   stats: aboutData.stats || [],
   platformBilling: billingData || {},
 };

@@ -5,7 +5,7 @@ import DishCard from './DishCard';
 import { useMenuData } from '../context/MenuDataContext';
 
 export default function MenuCatalog() {
-  const { categories: MENU_CATEGORIES, products: MENU_ITEMS } = useMenuData();
+  const { categories: MENU_CATEGORIES, products: MENU_ITEMS, businessData } = useMenuData();
   const [activeCategory, setActiveCategory] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [secondaryFilter, setSecondaryFilter] = useState('all');
@@ -75,14 +75,19 @@ export default function MenuCatalog() {
       <div className="container">
         {/* Encabezado Editorial del Menú */}
         <div className="section-header menu-section-header">
-          <span className="section-pretitle menu-pretitle">— NUESTRO MENÚ</span>
-          <h2 className="section-title menu-main-title">
-            Sabores para disfrutar <em>en cada</em>
-            <br />
-            momento.
-          </h2>
+          <span className="section-pretitle menu-pretitle">
+            {businessData?.menuSection?.pretitle || '— NUESTRO MENÚ'}
+          </span>
+          <h2
+            className="section-title menu-main-title"
+            dangerouslySetInnerHTML={{
+              __html: businessData?.menuSection?.titleHtml || 'Sabores para disfrutar <br /><em>en cada</em> momento.',
+            }}
+          />
           <p className="section-description menu-subtitle">
-            Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita.
+            {businessData?.menuSection?.description ||
+              businessData?.menuSubtitle ||
+              'Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita.'}
           </p>
         </div>
 

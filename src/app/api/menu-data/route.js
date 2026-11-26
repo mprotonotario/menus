@@ -44,6 +44,13 @@ export async function GET() {
       socials: contact.socials || {},
       paymentConfig: contact.paymentConfig || { allowTransfer: true, allowCash: true },
       deliveryConfig: contact.deliveryConfig || location.deliveryConfig || { deliveryFee: 35, enabled: true },
+      menuSection: brand.menuSection || {
+        pretitle: '— NUESTRO MENÚ',
+        titleHtml: 'Sabores para disfrutar <br /><em>en cada</em> momento.',
+        title: 'Sabores para disfrutar en cada momento.',
+        description: brand.menuSubtitle || 'Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita.',
+      },
+      menuSubtitle: brand.menuSubtitle || brand.menuSection?.description || 'Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita.',
       stats: about.stats || [],
       platformBilling: billing,
     };

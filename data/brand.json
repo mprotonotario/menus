@@ -39,5 +39,12 @@
   "name": "Cafetería María Bonita",
   "tradeName": "María Bonita Cafetería & Panadería",
   "slogan": "Sabor de hogar, aroma a recién molido",
-  "subheadline": "Chilaquiles mestizos con arrachera al carbón, panadería artesanal de masa madre horneada al alba y café de altura 100% mexicano para comenzar tu mañana de manera inolvidable."
+  "subheadline": "Chilaquiles mestizos con arrachera al carbón, panadería artesanal de masa madre horneada al alba y café de altura 100% mexicano para comenzar tu mañana de manera inolvidable.",
+  "menuSection": {
+    "pretitle": "— NUESTRO MENÚ",
+    "titleHtml": "Sabores para disfrutar <br /><em>en cada</em> momento.",
+    "title": "Sabores para disfrutar en cada momento.",
+    "description": "Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita."
+  },
+  "menuSubtitle": "Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita."
 }
