@@ -106,5 +106,67 @@ Todos los datos se administran de manera directa y desacoplada desde los archivo
 
 ---
 
+## 🔄 Proceso del Ciclo de Facturación, Cortesía y Notificaciones
+
+El sistema opera bajo un modelo de **pago por adelantado para aperturar el mes de servicio**, con soporte para **primer mes de cortesía gratuito** y recordatorios automáticos hacia un **Bot de Telegram del administrador** y **WhatsApp del cliente**:
+
+```mermaid
+flowchart TD
+    A["serviceStartDate: 2026-11-26<br>(Alta del Restaurante)"] --> B["Mes 1: Cortesía Gratuita<br>(firstMonthFree: true)"]
+    B --> C["Del 26-Nov al 20-Dic:<br>Plataforma Activa sin cobros ni avisos"]
+    C --> D{"21-Dic (9:00 AM Cancún)<br>Faltan 5 días (reminderDaysBefore: 5)"}
+    D --> E["🎉 Notificación de Telegram al Administrador:<br>Bienvenida Nuevo Cliente + Cobro Adelantado"]
+    E --> F["Admin presiona botón en Telegram:<br>Abre WhatsApp con mensaje listo y datos SPEI"]
+    F --> G{"Llega el 26-Dic (Apertura de Mes)"}
+    G -->|Cliente Paga| H["Admin presiona Renovar Ciclo (+30 Días)<br>paidMonthsCount = 1<br>billingCycleNumber = 3<br>nextBillingDate = 2027-01-26"]
+    G -->|Cliente No Paga| I["Periodo de Gracia (graceDays: 5)<br>Del 27-Dic al 31-Dic: Pedidos activos con aviso"]
+    I -->|Aún sin pagar al 01-Ene| J["🛑 Modo Solo Consulta Activado<br>Pedidos por WhatsApp se pausan automáticamente"]
+```
+
+### 📅 Ejemplo Práctico: Alta 26-Noviembre y Cobro 26-Diciembre
+
+Con la siguiente configuración en `data/billing.json`:
+```json
+{
+  "serviceStartDate": "2026-11-26",
+  "nextBillingDate": "2026-12-26",
+  "firstMonthFree": true,
+  "billingCycleNumber": 2,
+  "paidMonthsCount": 0,
+  "reminderDaysBefore": 5,
+  "graceDays": 5,
+  "monthlyFee": 300,
+  "paymentTiming": "advance"
+}
+```
+
+1. **Del 26 de Noviembre al 20 de Diciembre (Periodo de Cortesía):**
+   - El cliente disfruta su mes gratis de prueba.
+   - El cron diario (que corre a las 9:00 AM hora Cancún) evalúa que faltan más de 5 días. **No se envía ninguna notificación ni interrupción**.
+
+2. **El 21 de Diciembre a las 9:00 AM (Faltan exactamente 5 días):**
+   - El sistema detecta `diffDays === reminderDaysBefore (5 días)`.
+   - **Llega la alerta a Telegram**: Como `paidMonthsCount === 0`, el bot envía la notificación con el título `🎉 NOTIFICACIÓN DE COBRO: 1ER MES (BIENVENIDA NUEVO CLIENTE)`.
+   - Incluye el resumen del restaurante, monto por adelantado ($300.00 MXN) y un botón interactivo que abre directamente el chat de WhatsApp con el cliente con el texto de bienvenida oficial y datos SPEI (BBVA, CLABE, Beneficiario, Referencia).
+
+3. **Del 22 al 26 de Diciembre (Ventana de Recordatorio Diario):**
+   - Mientras no se registre el pago, el cron envía 1 recordatorio preventivo al día a las 9:00 AM indicando los días restantes (4 días, 3 días, 2 días, 1 día y el día del corte).
+
+4. **El 26 de Diciembre (Día de Apertura del Mes):**
+   - Es la fecha límite para dar inicio formal al mes con servicio activo.
+   - Si se registra el pago y se renueva el ciclo en `/admin`:
+     - `paidMonthsCount` sube a `1`.
+     - `billingCycleNumber` sube a `3`.
+     - `nextBillingDate` avanza al `2027-01-26`.
+     - A partir del siguiente mes, las notificaciones serán el **recordatorio recurrente estándar** (sin bienvenida de cliente nuevo).
+
+5. **Del 27 al 31 de Diciembre (Periodo de Gracia de 5 días):**
+   - Si el cliente no ha pagado al 26 de Diciembre, la plataforma **no corta el servicio de golpe**: otorga 5 días de tolerancia donde las comandas por WhatsApp siguen funcionando.
+
+6. **A partir del 1 de Enero de 2027 (Suspensión por Falta de Pago):**
+   - Si expira el periodo de gracia sin pago, la plataforma cambia automáticamente a **Modo Solo Consulta**: el catálogo y precios siguen visibles, pero los pedidos a WhatsApp se bloquean hasta registrar el pago.
+
+---
+
 ## 💻 Desarrollado por
 Plataforma creada y diseñada por [RedaySoft.com](https://redaysoft.com).
