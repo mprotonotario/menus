@@ -1,17 +1,17 @@
 {
   "brand": {
-    "name": "Cafetería María Bonita",
-    "title": "María Bonita",
-    "subtitle": "Cafetería & Panadería",
-    "footerSubtitle": "Sabor de hogar"
+    "name": "Cafetería Demo",
+    "title": "Café Demo",
+    "subtitle": "Menú Digital & Pedidos Online",
+    "footerSubtitle": "Demostración de Menú Digital"
   },
   "hero": {
     "badgeIcon": "✨",
-    "badgeText": "Alta Cocina Matutina • Desayunos de Autor",
+    "badgeText": "Demostración Interactiva • Menú Digital",
     "titleHtml": "Sabor de hogar, <br>aroma a <span class=\"highlight\">recién molido</span>.",
     "title": "Sabor de hogar, aroma a recién molido.",
-    "subtitle": "Chilaquiles mestizos con arrachera al carbón, panadería artesanal de masa madre horneada al alba y café de altura 100% mexicano para comenzar tu mañana de manera inolvidable.",
-    "btnPrimaryText": "Explorar Menú Completo",
+    "subtitle": "Demostración en vivo de pedidos por WhatsApp, opciones de platillos, recolección en barra o entrega a domicilio y control de comanda para tu cafetería o restaurante.",
+    "btnPrimaryText": "Explorar Menú Demo",
     "btnSecondaryText": "Especialidades del Día",
     "luxuryPills": [
       {
@@ -25,26 +25,26 @@
         "subtitle": "Fermentada 24 horas"
       },
       {
-        "icon": "🥚",
-        "title": "Libre Pastoreo",
-        "subtitle": "100% Orgánico"
+        "icon": "📱",
+        "title": "Pedidos WhatsApp",
+        "subtitle": "100% Automatizado"
       },
       {
         "icon": "⭐",
-        "title": "4.9★ Calificación",
-        "subtitle": "+3,800 comensales"
+        "title": "Menú Digital",
+        "subtitle": "Versión Demostrativa"
       }
     ]
   },
-  "name": "Cafetería María Bonita",
-  "tradeName": "María Bonita Cafetería & Panadería",
-  "slogan": "Sabor de hogar, aroma a recién molido",
-  "subheadline": "Chilaquiles mestizos con arrachera al carbón, panadería artesanal de masa madre horneada al alba y café de altura 100% mexicano para comenzar tu mañana de manera inolvidable.",
+  "name": "Cafetería Demo",
+  "tradeName": "Cafetería Demo • Menú Digital",
+  "slogan": "Tu carta digital interactiva, rápida y moderna",
+  "subheadline": "Demostración en vivo de pedidos por WhatsApp, opciones de platillos, recolección en barra o entrega a domicilio y control de comanda para tu cafetería o restaurante.",
   "menuSection": {
-    "pretitle": "— NUESTRO MENÚ",
+    "pretitle": "— NUESTRO MENÚ DEMO",
     "titleHtml": "Sabores para disfrutar <br /><em>en cada</em> momento.",
     "title": "Sabores para disfrutar en cada momento.",
-    "description": "Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita."
+    "description": "Café, bebidas y alimentos de muestra preparados para acompañar cada visita a nuestra cafetería demo."
   },
-  "menuSubtitle": "Café, bebidas y alimentos preparados para acompañar cada visita a María Bonita."
+  "menuSubtitle": "Café, bebidas y alimentos de muestra preparados para acompañar cada visita a nuestra cafetería demo."
 }

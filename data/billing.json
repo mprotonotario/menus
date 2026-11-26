@@ -21,8 +21,8 @@
     "bank": "BBVA México",
     "clabe": "012180001234567890",
     "beneficiary": "RedaySoft Soluciones Digitales",
-    "reference": "MARIA-BONITA-01",
-    "paymentLink": "https://buy.stripe.com/test_maria_bonita_mensualidad",
+    "reference": "CAFETERIA-DEMO-01",
+    "paymentLink": "https://buy.stripe.com/test_cafeteria_demo_mensualidad",
     "enablePaymentLink": false
   }
 }

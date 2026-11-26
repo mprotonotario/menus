@@ -246,7 +246,7 @@
   {
     "id": "hamb-1",
     "category": "hamburguesas",
-    "name": "Hamburguesa Hawaiana María Bonita",
+    "name": "Hamburguesa Hawaiana de la Casa (Demo)",
     "shortDescription": "180g de carne de res al carbón, piña miel asada con mantequilla, jamón Virginia, queso manchego fundido y salsa BBQ dulce.",
     "description": "Nuestra consentida dulce y salada. Medallón artesanal de 180g de carne de res premium a las brasas, piña miel tatemada con mantequilla clarificada, jamón Virginia dorado, queso manchego gratinado y bollo brioche recién horneado con ajonjolí negro. Acompañada de papas gajo sazonadas.",
     "price": 125,
@@ -879,7 +879,7 @@
   {
     "id": "frio-1",
     "category": "frios",
-    "name": "Frappé de Mazapán María Bonita",
+    "name": "Frappé de Mazapán Especial (Demo)",
     "shortDescription": "Base cremosa de leche, espresso suave, mazapán de cacahuate original de la rosa y lluvia de cacahuate garapiñado.",
     "description": "Nuestra bebida helada más aclamada. Licuamos mazapán artesanal con leche fría, base frappé aterciopelada y un shot de espresso para balancear el dulzor con el tostado del grano.",
     "price": 84,
@@ -1292,7 +1292,7 @@
   {
     "id": "com-desayuno-completo",
     "category": "combos",
-    "name": "Combo Desayuno María Bonita",
+    "name": "Combo Desayuno de la Casa (Demo)",
     "shortDescription": "Chilaquiles Mestizos con huevo o pollo + Jugo de Naranja natural (350ml) + Café de Olla tradicional.",
     "description": "El desayuno completo por excelencia. Incluye una orden generosa de chilaquiles con proteína a elegir, un jugo de naranja recién exprimido y un café de olla en taza de barro curada.",
     "price": 185,
