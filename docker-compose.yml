@@ -10,6 +10,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./public:/app/public
+      - ./assets:/app/public/assets
       - ./data:/app/data
       - ./next.config.js:/app/next.config.js
     command: ["sh", "-c", "npm run build && npm start"]

@@ -27,6 +27,7 @@ export default function Footer() {
                   alt={brand.name || 'Logo Cafetería'}
                   className="brand-logo-img"
                   style={{ border: '2px solid rgba(255, 255, 255, 0.2)' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               ) : (
                 <div className="brand-icon-wrapper" style={{ background: 'var(--terracotta-500)' }}>

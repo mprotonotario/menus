@@ -18,6 +18,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('inicio');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   const brand = BUSINESS_DATA.brand || {};
   const contact = BUSINESS_DATA.contact || {};
@@ -29,6 +30,10 @@ export default function Header() {
       ? brandLogoRaw.replace(/\\/g, '/')
       : `/${brandLogoRaw.replace(/\\/g, '/')}`
     : null;
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [brandLogo]);
 
   const isPlatformSuspended = Boolean(BUSINESS_DATA.platformBilling?.isSuspended);
   const statusBadgeClass = isPlatformSuspended
@@ -139,11 +144,12 @@ export default function Header() {
             aria-label={`${brand.name || 'Cafetería Demo'} - Inicio`}
             onClick={(e) => scrollToSection(e, 'inicio')}
           >
-            {brandLogo ? (
+            {brandLogo && !logoError ? (
               <img
                 src={brandLogo}
                 alt={brand.name || 'Logo Cafetería'}
                 className="brand-logo-img"
+                onError={() => setLogoError(true)}
               />
             ) : (
               <div className="brand-icon-wrapper">
