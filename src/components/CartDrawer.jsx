@@ -406,7 +406,7 @@ export default function CartDrawer() {
                       setFormError('');
                     }}
                   >
-                    🛵 A Domicilio {deliveryFee > 0 && `(+${formatMoney(deliveryFee)})`}
+                    🛵 A Domicilio
                   </button>
                 </div>
 
@@ -432,14 +432,9 @@ export default function CartDrawer() {
                 {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
                 {orderType === 'delivery' ? (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <label className="order-type-label" style={{ margin: 0 }}>
-                        <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
-                      </label>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--terracotta-600)', background: 'var(--cream-200)', padding: '0.15rem 0.45rem', borderRadius: '5px' }}>
-                        Envío: +{formatMoney(deliveryFee)} MXN
-                      </span>
-                    </div>
+                    <label className="order-type-label" style={{ marginBottom: '0.25rem' }}>
+                      <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
+                    </label>
                     <input
                       type="text"
                       className="table-input-field"

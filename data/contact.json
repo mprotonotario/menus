@@ -19,7 +19,7 @@
     "allowCash": true
   },
   "deliveryConfig": {
-    "deliveryFee": 35,
+    "deliveryFee": 50,
     "enabled": true,
     "label": "Envío a domicilio"
   }
