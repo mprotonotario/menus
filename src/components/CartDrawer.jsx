@@ -359,6 +359,19 @@ export default function CartDrawer() {
 
               {/* Caja de Configuración del Pedido */}
               <div className="order-type-box">
+                {/* Cabecera elegante de la configuración */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #ebd9c5' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <span style={{ fontSize: '1.05rem' }}>⚙️</span>
+                    <strong style={{ fontFamily: 'var(--font-serif)', fontSize: '1.02rem', fontWeight: 700, color: 'var(--espresso-900)', letterSpacing: '-0.01em' }}>
+                      Configuración del Pedido
+                    </strong>
+                  </div>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.04em', color: 'var(--terracotta-600)', background: 'var(--cream-200)', padding: '0.2rem 0.55rem', borderRadius: '6px', textTransform: 'uppercase' }}>
+                    Paso Final
+                  </span>
+                </div>
+
                 {/* Selector de Modalidad */}
                 <span className="order-type-label">🛵 Modalidad de Entrega:</span>
                 <div className="order-type-tabs">
@@ -386,7 +399,7 @@ export default function CartDrawer() {
 
                 {/* Nombre del cliente */}
                 <div style={{ marginTop: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                  <label className="order-type-label" style={{ marginBottom: '0.25rem' }}>
                     <span>👤 Nombre de quien ordena:</span> <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
@@ -406,7 +419,7 @@ export default function CartDrawer() {
                 {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
                 {orderType === 'delivery' ? (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                    <label className="order-type-label" style={{ marginBottom: '0.25rem' }}>
                       <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
@@ -424,7 +437,7 @@ export default function CartDrawer() {
                     <input
                       type="text"
                       className="table-input-field"
-                      style={{ marginTop: '0.45rem', fontSize: '0.8rem' }}
+                      style={{ marginTop: '0.45rem', fontSize: '0.84rem' }}
                       value={deliveryNotes}
                       onChange={(e) => setDeliveryNotes(e.target.value)}
                       placeholder="🧭 Referencias de llegada (ej. Fachada blanca, portón café)"
@@ -432,12 +445,12 @@ export default function CartDrawer() {
                     />
                   </div>
                 ) : (
-                  <div style={{ marginTop: '0.65rem', background: 'linear-gradient(135deg, #fffcf9 0%, #faf3eb 100%)', border: '1.5px dashed #debda2', borderRadius: '10px', padding: '0.65rem 0.85rem', fontSize: '0.78rem', color: '#4a382c', lineHeight: 1.4, display: 'flex', gap: '0.55rem', alignItems: 'flex-start' }}>
+                  <div style={{ marginTop: '0.65rem', background: 'linear-gradient(135deg, #fffcf9 0%, #faf3eb 100%)', border: '1.5px dashed #debda2', borderRadius: '10px', padding: '0.65rem 0.85rem', fontSize: '0.8rem', color: '#4a382c', lineHeight: 1.45, display: 'flex', gap: '0.55rem', alignItems: 'flex-start', fontFamily: 'var(--font-sans)' }}>
                     <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }}>📍</span>
                     <div>
-                      <strong style={{ color: '#2a170e', display: 'block', marginBottom: '0.15rem' }}>Recoger en barra del establecimiento:</strong>
-                      <span>{BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro, Chetumal, Q. Roo'}</span>
-                      <div style={{ fontSize: '0.72rem', color: '#8c6549', marginTop: '0.25rem', fontWeight: 600 }}>
+                      <strong style={{ color: '#2a170e', display: 'block', marginBottom: '0.15rem', fontWeight: 700 }}>Recoger en barra del establecimiento:</strong>
+                      <span style={{ fontWeight: 500 }}>{BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro, Chetumal, Q. Roo'}</span>
+                      <div style={{ fontSize: '0.74rem', color: '#8c6549', marginTop: '0.25rem', fontWeight: 600 }}>
                         ✨ Prepararemos tu orden al momento para que la disfrutes fresca.
                       </div>
                     </div>
