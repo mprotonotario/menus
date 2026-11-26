@@ -9,15 +9,17 @@ import {
   getCancunDateParts,
 } from '../../../../lib/billingStatus';
 
-function getLiveFileSuspended() {
+function getLiveBillingData() {
   try {
     const billingPath = path.join(process.cwd(), 'data', 'billing.json');
     if (fs.existsSync(billingPath)) {
       const raw = fs.readFileSync(billingPath, 'utf8');
       const json = JSON.parse(raw);
-      if (typeof json.isSuspended === 'boolean') return json.isSuspended;
+      if (json && typeof json === 'object') return json;
     }
-  } catch {}
+  } catch (e) {
+    console.warn('Error reading billing.json in cron:', e);
+  }
   return null;
 }
 
@@ -53,10 +55,8 @@ async function handleCron(request) {
     }
 
     const cancunNow = getCancunDateParts();
-    const liveSuspended = getLiveFileSuspended();
-    const billingStatus = evaluateBillingStatus(
-      liveSuspended !== null ? { isSuspended: liveSuspended } : null
-    );
+    const liveBilling = getLiveBillingData();
+    const billingStatus = evaluateBillingStatus(liveBilling);
 
     const isTargetReminderDay =
       forceSimulate ||

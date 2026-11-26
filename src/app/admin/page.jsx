@@ -14,6 +14,7 @@ import {
   evaluateBillingStatus,
   renewBillingCycle,
   setPlatformSuspension,
+  generateWhatsappReminderMessage,
 } from '../../lib/billingStatus';
 import { REDAYSOFT_BADGE_BASE64 } from '../../assets/logoBase64';
 
@@ -509,7 +510,7 @@ export default function AdminBillingPage() {
             recordMonthlyPayment({
               amount: fee,
               paymentMethod: 'Transferencia Interbancaria SPEI (BBVA)',
-              reference: subStatus?.paymentInfo?.reference || 'MARIA-BONITA-01',
+              reference: subStatus?.paymentInfo?.reference || 'CAFETERIA-DEMO-01',
               period: `Mensualidad renovada (Vence: ${res.newNextBillingDate || 'Próximo mes'})`,
             });
             await refreshData();
@@ -716,6 +717,8 @@ export default function AdminBillingPage() {
 
   const monthlyFee = subStatus?.monthlyFee || billingConfig.monthlyFee || 300;
   const paymentInfo = subStatus?.paymentInfo || billingConfig.paymentInfo || {};
+  const reminderMsg = subStatus ? generateWhatsappReminderMessage(subStatus) : '';
+  const clientWhatsappUrl = `https://wa.me/${subStatus?.billingPhone || '529831226847'}?text=${encodeURIComponent(reminderMsg)}`;
 
   return (
     <div className="admin-scope" style={styles.dashboardContainer}>
@@ -723,7 +726,7 @@ export default function AdminBillingPage() {
       <header style={styles.headerBar}>
         <div style={styles.headerLeft}>
           <div style={styles.brandBadge}>
-            ☕ <strong>{BUSINESS_DATA.brand?.name || 'María Bonita'}</strong>
+            ☕ <strong>{BUSINESS_DATA.brand?.name || 'Cafetería Demo'}</strong>
           </div>
           <span style={styles.headerDivider}>|</span>
           <span style={styles.headerPortalTag}>Portal de Suscripción & Facturación Mensual</span>
@@ -745,10 +748,28 @@ export default function AdminBillingPage() {
           <div>
             <h1 style={styles.bannerTitle}>Control de Suscripción & Facturación Mensual</h1>
             <p style={styles.bannerSubtitle}>
-              Cuota fija de plataforma: <strong>${monthlyFee}.00 {billingConfig.currency || 'MXN'} mensuales</strong> • Acceso ilimitado al Menú Digital y recepción de comandas por WhatsApp.
+              Cuota fija de plataforma: <strong>${monthlyFee}.00 {billingConfig.currency || 'MXN'} mensuales por adelantado</strong> • Apertura de mes de servicio con recepción de comandas por WhatsApp ilimitadas.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            {subStatus && (
+              <a
+                href={clientWhatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  ...styles.actionBtn,
+                  background: '#059669',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+                title="Abrir WhatsApp para enviar mensaje al cliente con datos de apertura de mes y SPEI"
+              >
+                📲 {subStatus.isFirstPaidMonth ? 'Enviar Bienvenida & Cobro (WA)' : 'Enviar Cobro de Mes (WA)'}
+              </a>
+            )}
             <button
               type="button"
               onClick={handleRenewCycle}
@@ -756,7 +777,7 @@ export default function AdminBillingPage() {
                 ...styles.actionBtn,
                 background: '#15803d',
               }}
-              title="Registrar pago mensual SPEI y extender 30 días la fecha de corte"
+              title="Registrar pago mensual SPEI y aperturar el siguiente mes de servicio (+1 Mes)"
             >
               🔄 Renovar Ciclo (+30 Días)
             </button>
@@ -886,10 +907,15 @@ export default function AdminBillingPage() {
                 <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
                   📅 Cronograma de Facturación:
                 </span>
-                <div>Fecha de corte: <strong>{subStatus.nextBillingDate}</strong></div>
+                <div>Modalidad: <strong>Pago por adelantado (Apertura de mes)</strong></div>
+                <div>Apertura de ciclo: <strong>{subStatus.nextBillingDate}</strong></div>
                 <div>Hoy en Cancún: <strong>{subStatus.todayCancun}</strong></div>
-                <div>Días de gracia configurados: <strong>{subStatus.graceDays} días</strong></div>
-                <div>Aviso preventivo automático: <strong>{subStatus.reminderDaysBefore} días antes</strong></div>
+                {subStatus.firstMonthFree && (
+                  <div>Mes de cortesía: <strong>✅ 1er Mes Gratis Aplicado</strong></div>
+                )}
+                <div>Ciclo actual: <strong>Mes #{subStatus.billingCycleNumber || 2} {subStatus.isFirstPaidMonth ? '(1er cobro con bienvenida)' : '(Mensualidad recurrente)'}</strong></div>
+                <div>Días de gracia: <strong>{subStatus.graceDays} días tras apertura</strong></div>
+                <div>Aviso preventivo: <strong>{subStatus.reminderDaysBefore} días antes</strong></div>
               </div>
 
               <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px' }}>
@@ -913,10 +939,10 @@ export default function AdminBillingPage() {
                 </div>
                 <div>Beneficiario: <strong>{paymentInfo.beneficiary || 'RedaySoft'}</strong></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
-                  <span>Referencia: <strong>{paymentInfo.reference || 'MARIA-BONITA-01'}</strong></span>
+                  <span>Referencia: <strong>{paymentInfo.reference || 'CAFETERIA-DEMO-01'}</strong></span>
                   <button
                     type="button"
-                    onClick={() => handleCopy(paymentInfo.reference || 'MARIA-BONITA-01', 'ref')}
+                    onClick={() => handleCopy(paymentInfo.reference || 'CAFETERIA-DEMO-01', 'ref')}
                     style={styles.copySmallBtn}
                     title="Copiar Referencia"
                   >
@@ -928,13 +954,13 @@ export default function AdminBillingPage() {
               <div style={{ background: '#faf7f2', padding: '1rem', borderRadius: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <span style={{ display: 'block', color: '#6b5c52', fontWeight: 700, marginBottom: '0.3rem' }}>
-                    💎 Tarifa Mensual Fija:
+                    💎 Tarifa Mensual Fija Adelantada:
                   </span>
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#c25428' }}>
                     ${monthlyFee}.00 {billingConfig.currency || 'MXN'}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#666', marginTop: '0.3rem' }}>
-                    Sin cobro por comanda • Uso libre del menú digital
+                    Pago por adelantado para aperturar mes • Uso libre de menú y comandas
                   </div>
                 </div>
                 <div

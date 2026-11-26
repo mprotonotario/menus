@@ -31,6 +31,8 @@ export async function POST(request) {
 
     if (billingData) {
       billingData.nextBillingDate = result.newNextBillingDate;
+      billingData.paidMonthsCount = (billingData.paidMonthsCount || 0) + monthsToAdd;
+      billingData.billingCycleNumber = (billingData.billingCycleNumber || 2) + monthsToAdd;
       billingData.isSuspended = false;
       fs.writeFileSync(billingPath, JSON.stringify(billingData, null, 2));
     }

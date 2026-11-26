@@ -60,13 +60,18 @@ export function getDiffDaysInCancun(targetIsoDate) {
  */
 export function getEffectiveBillingConfig() {
   const baseConfig = BUSINESS_DATA.platformBilling || {
-    commissionPerOrder: 3,
-    monthlyFee: 249,
+    commissionPerOrder: 0,
+    monthlyFee: 300,
     currency: 'MXN',
     cycleDays: 30,
     graceDays: 5,
-    reminderDaysBefore: 3,
-    nextBillingDate: '2026-11-28',
+    reminderDaysBefore: 5,
+    paymentTiming: 'advance',
+    firstMonthFree: true,
+    serviceStartDate: '2026-11-01',
+    billingCycleNumber: 2,
+    paidMonthsCount: 0,
+    nextBillingDate: '2026-12-01',
     billingPhone: '529831226847',
     whatsappRecipient: '529831226847',
     ownerPin: '2026',
@@ -77,8 +82,9 @@ export function getEffectiveBillingConfig() {
       bank: 'BBVA México',
       clabe: '012180001234567890',
       beneficiary: 'RedaySoft Soluciones Digitales',
-      reference: 'MARIA-BONITA-01',
-      paymentLink: 'https://buy.stripe.com/test_maria_bonita_mensualidad',
+      reference: 'CAFETERIA-DEMO-01',
+      paymentLink: 'https://buy.stripe.com/test_cafeteria_demo_mensualidad',
+      enablePaymentLink: false,
     },
   };
 
@@ -110,11 +116,16 @@ export function getEffectiveBillingConfig() {
 export function evaluateBillingStatus(customConfig = null) {
   const base = getEffectiveBillingConfig();
   const config = customConfig ? { ...base, ...customConfig } : base;
-  const nextBillingDate = config.nextBillingDate || '2026-11-28';
+  const nextBillingDate = config.nextBillingDate || '2026-12-01';
   const graceDays = Number(config.graceDays ?? 5);
-  const reminderDaysBefore = Number(config.reminderDaysBefore ?? 3);
-  const monthlyFee = Number(config.monthlyFee ?? 249);
+  const reminderDaysBefore = Number(config.reminderDaysBefore ?? 5);
+  const monthlyFee = Number(config.monthlyFee ?? 300);
   const currency = config.currency || 'MXN';
+  const firstMonthFree = Boolean(config.firstMonthFree ?? true);
+  const paidMonthsCount = Number(config.paidMonthsCount ?? 0);
+  const billingCycleNumber = Number(config.billingCycleNumber ?? (paidMonthsCount + (firstMonthFree ? 2 : 1)));
+  const paymentTiming = config.paymentTiming || 'advance'; // 'advance': pago por adelantado para aperturar mes
+  const isFirstPaidMonth = Boolean(firstMonthFree && paidMonthsCount === 0);
 
   const cancun = getCancunDateParts();
   const diffDays = getDiffDaysInCancun(nextBillingDate);
@@ -127,7 +138,7 @@ export function evaluateBillingStatus(customConfig = null) {
 
   let status = 'active'; // 'active' | 'reminder_window' | 'grace_period' | 'read_only' | 'suspended_by_admin'
   let canSendWhatsappOrder = true;
-  let statusBadgeText = 'Suscripción Activa';
+  let statusBadgeText = isFirstPaidMonth ? '1er Mes Gratis Concluido (Apertura Pendiente)' : 'Suscripción Activa';
   let statusBadgeClass = 'is-active';
   let ownerAlert = null;
 
@@ -145,18 +156,34 @@ export function evaluateBillingStatus(customConfig = null) {
   } else if (diffDays > reminderDaysBefore) {
     status = 'active';
     canSendWhatsappOrder = true;
-    statusBadgeText = `Al corriente (${daysUntilDue} días para corte)`;
+    statusBadgeText = isFirstPaidMonth
+      ? `Apertura 1er Mes de Cobro (${daysUntilDue} días para apertura)`
+      : `Al corriente (${daysUntilDue} días para apertura de ciclo)`;
     statusBadgeClass = 'is-active';
   } else if (diffDays >= 0 && diffDays <= reminderDaysBefore) {
     status = 'reminder_window';
     canSendWhatsappOrder = true;
-    statusBadgeText = diffDays === 0 ? 'Corte el día de hoy' : `Próximo corte en ${diffDays} días`;
-    statusBadgeClass = 'is-reminder';
-    ownerAlert = {
-      level: 'warning',
-      title: 'Recordatorio Preventivo de Facturación',
-      message: `Tu fecha de corte es el ${nextBillingDate}. Quedan ${diffDays} días para renovar tu suscripción sin interrupciones.`,
-    };
+    if (isFirstPaidMonth) {
+      statusBadgeText = diffDays === 0
+        ? 'Apertura de 1er Mes de Cobro (Hoy)'
+        : `Apertura de 1er Mes en ${diffDays} días`;
+      statusBadgeClass = 'is-reminder';
+      ownerAlert = {
+        level: 'warning',
+        title: '¡Bienvenido como Nuevo Cliente! — Apertura 1er Mes de Servicio',
+        message: `Tu primer mes gratis de cortesía ha concluido. Para aperturar el nuevo periodo con servicio activo a partir del ${nextBillingDate}, realiza el pago por adelantado de $${monthlyFee}.00 ${currency} (quedan ${diffDays} días).`,
+      };
+    } else {
+      statusBadgeText = diffDays === 0
+        ? 'Apertura de nuevo mes el día de hoy'
+        : `Apertura de nuevo mes en ${diffDays} días`;
+      statusBadgeClass = 'is-reminder';
+      ownerAlert = {
+        level: 'warning',
+        title: 'Recordatorio Preventivo: Apertura de Mes por Adelantado',
+        message: `La fecha de apertura para tu nuevo periodo es el ${nextBillingDate}. Quedan ${diffDays} días para realizar tu pago anticipado de $${monthlyFee}.00 ${currency} y continuar sin interrupciones.`,
+      };
+    }
   } else if (daysPastDue <= graceDays) {
     status = 'grace_period';
     canSendWhatsappOrder = true;
@@ -165,8 +192,8 @@ export function evaluateBillingStatus(customConfig = null) {
     statusBadgeClass = 'is-grace';
     ownerAlert = {
       level: 'danger',
-      title: 'Pago Vencido - Periodo de Gracia Activo',
-      message: `La fecha de corte venció hace ${daysPastDue} días. Cuentas con ${remainingGrace} días de gracia antes de que los pedidos a WhatsApp pasen a modo solo lectura.`,
+      title: 'Pago Anticipado Pendiente - Periodo de Gracia Activo',
+      message: `La fecha de apertura del mes venció hace ${daysPastDue} días. Cuentas con ${remainingGrace} días de gracia para regularizar la mensualidad antes de que los pedidos a WhatsApp pasen a modo solo lectura.`,
     };
   } else {
     // daysPastDue > graceDays -> MODO SOLO LECTURA
@@ -177,7 +204,7 @@ export function evaluateBillingStatus(customConfig = null) {
     ownerAlert = {
       level: 'critical',
       title: 'Modo Solo Lectura Activado',
-      message: `Se han superado los ${graceDays} días de gracia posteriores al corte. El menú y QR continúan funcionando, pero el botón de WhatsApp ha sido pausado hasta registrar el pago.`,
+      message: `Se han superado los ${graceDays} días de gracia posteriores a la fecha de apertura. El menú y QR continúan visibles, pero el botón de WhatsApp ha sido pausado hasta registrar el pago del periodo.`,
     };
   }
 
@@ -210,6 +237,11 @@ export function evaluateBillingStatus(customConfig = null) {
     customerNotice,
     ownerAlert,
     isSuspended,
+    firstMonthFree,
+    paidMonthsCount,
+    billingCycleNumber,
+    paymentTiming,
+    isFirstPaidMonth,
     billingPhone: config.billingPhone || config.whatsappRecipient,
     paymentInfo: config.paymentInfo || {},
     companyName: config.companyName,
@@ -224,19 +256,28 @@ export function evaluateBillingStatus(customConfig = null) {
 export function generateTelegramAdminNotification(statusData = null, directWhatsappUrl = '') {
   const data = statusData || evaluateBillingStatus();
   const payment = data.paymentInfo || {};
-  const businessName = BUSINESS_DATA.brand?.name || 'Cafetería María Bonita';
+  const businessName = BUSINESS_DATA.brand?.name || 'Cafetería Demo';
   const phone = data.billingPhone || '529831226847';
 
+  const titleHeader = data.isFirstPaidMonth
+    ? `🎉 <b>NOTIFICACIÓN DE COBRO: 1ER MES (BIENVENIDA NUEVO CLIENTE)</b>`
+    : `🔔 <b>RECORDATORIO DE FACTURACIÓN (APERTURA DE MES POR ADELANTADO)</b>`;
+
+  const cycleInfo = data.isFirstPaidMonth
+    ? `🎁 <b>Condición:</b> 1er Mes de Cortesía Concluido → Inicio de Cobro Formal\n`
+    : `🔄 <b>Ciclo de Servicio:</b> Mes #${data.billingCycleNumber || 2} (Mensualidad Recurrente)\n`;
+
   const text = 
-    `🔔 <b>RECORDATORIO DE COBRO — MENÚ DIGITAL</b>\n` +
+    `${titleHeader}\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `🏪 <b>Restaurante:</b> <code>${businessName}</code>\n` +
-    `📅 <b>Fecha de Corte:</b> <code>${data.nextBillingDate}</code> (Faltan <b>${data.daysUntilDue} días</b>)\n` +
-    `💵 <b>Monto Mensual:</b> <b>$${data.monthlyFee}.00 ${data.currency}</b>\n` +
+    cycleInfo +
+    `📅 <b>Apertura de Periodo:</b> <code>${data.nextBillingDate}</code> (Faltan <b>${data.daysUntilDue} días</b>)\n` +
+    `💵 <b>Monto por Adelantado:</b> <b>$${data.monthlyFee}.00 ${data.currency}</b>\n` +
     `📱 <b>Teléfono Cliente:</b> <code>+${phone}</code>\n` +
     `🛡️ <b>Gracia:</b> <code>${data.graceDays} días</code> antes de pausar pedidos\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `👉 <i>Presiona el botón inferior para abrir WhatsApp con el mensaje oficial de pago y datos SPEI listo para enviárselo al cliente.</i>`;
+    `👉 <i>Presiona el botón inferior para abrir WhatsApp con el mensaje ${data.isFirstPaidMonth ? 'de bienvenida y cobro inicial' : 'oficial de pago'} listo para enviárselo al cliente.</i>`;
 
   const inlineKeyboard = [
     [
@@ -310,20 +351,56 @@ export function generateWhatsappReminderMessage(statusData = null) {
   const data = statusData || evaluateBillingStatus();
   const payment = data.paymentInfo || {};
   const isOnlinePaymentEnabled = payment.enablePaymentLink === true && Boolean(payment.paymentLink);
+  const businessName = BUSINESS_DATA.brand?.name || 'Cafetería Demo';
+  const company = data.companyName || 'RedaySoft Soluciones Digitales';
 
+  if (data.isFirstPaidMonth) {
+    // MENSAJE DE BIENVENIDA COMO NUEVO CLIENTE (1ER MES DE COBRO TRAS MES GRATIS)
+    let message =
+      `🎉 *¡BIENVENIDO A REDAYSOFT! — APERTURA DE SERVICIO MENSUAL* 🎉\n` +
+      `--------------------------------------------------\n` +
+      `Estimado/a administrador de *${businessName}*:\n\n` +
+      `Esperamos que hayan tenido una excelente experiencia con su *primer mes de cortesía gratuito* en nuestra plataforma de Menú Digital interactivo.\n\n` +
+      `Nos da un gran gusto darles la más cordial *bienvenida como cliente formal* de ${company}. A partir de este momento, iniciamos formalmente la modalidad de mensualidad con cuota fija preferencial.\n\n` +
+      `Recordamos que el servicio opera con la modalidad de *pago por adelantado para aperturar el mes de uso*. A continuación les compartimos los detalles para la apertura de su periodo que inicia el *${data.nextBillingDate}*:\n\n` +
+      `💎 *Concepto:* Apertura 1er Mes de Servicio (Menú Digital & Pedidos WhatsApp)\n` +
+      `💵 *Monto de Mensualidad:* $${data.monthlyFee}.00 ${data.currency} (Cuota Fija)\n` +
+      `📅 *Fecha de Apertura / Límite:* ${data.nextBillingDate} (Faltan ${data.daysUntilDue} días)\n` +
+      `🛡️ *Periodo de Gracia:* ${data.graceDays} días adicionales tras la fecha de apertura.\n\n` +
+      `*DATOS PARA TRANSFERENCIA BANCARIA SPEI:*\n` +
+      `🏦 *Banco:* ${payment.bank || 'BBVA México'}\n` +
+      `🔢 *CLABE Interbancaria:* \`${payment.clabe || '012180001234567890'}\`\n` +
+      `👤 *Beneficiario:* ${payment.beneficiary || 'RedaySoft Soluciones Digitales'}\n` +
+      `📌 *Concepto / Referencia:* \`${payment.reference || 'CAFETERIA-DEMO-01'}\`\n\n`;
+
+    if (isOnlinePaymentEnabled) {
+      message += `💳 *Pago Rápido con Tarjeta:* ${payment.paymentLink}\n\n`;
+    }
+
+    message +=
+      `📸 *Apertura y Confirmación de Pago:*\n` +
+      `Una vez realizada su transferencia, por favor *compartan su comprobante o captura de pantalla por este mismo chat de WhatsApp* para registrar el abono, dar apertura inmediata a su ciclo y hacerles llegar su recibo correspondiente.\n\n` +
+      `_¡Agradecemos enormemente su confianza y estamos listos para seguir impulsando las ventas y pedidos de su cafetería!_`;
+
+    return message;
+  }
+
+  // MENSAJE RECURRENTE ESTÁNDAR (A PARTIR DEL SEGUNDO MES CON COBRO EN ADELANTE)
   let message =
-    `*RECORDATORIO DE FACTURACIÓN — ${data.companyName || 'REDAYSOFT'}*\n` +
+    `*RECORDATORIO DE MENSUALIDAD — ${company}*\n` +
     `--------------------------------------------------\n` +
-    `Hola, estimado/a administrador de *${BUSINESS_DATA.brand?.name || 'Cafetería María Bonita'}*.\n\n` +
-    `Te informamos que tu fecha límite de pago para el servicio de menú digital es el *${data.nextBillingDate}*.\n\n` +
+    `Hola, estimado/a administrador de *${businessName}*.\n\n` +
+    `Te recordamos que se aproxima la fecha para aperturar tu siguiente mes de servicio de menú digital el *${data.nextBillingDate}*.\n\n` +
+    `Como sabes, nuestros pagos son *por adelantado cada vez que inicia el mes* para aperturar el periodo de uso y mantener activos tus pedidos sin interrupciones.\n\n` +
     `💵 *Monto de Mensualidad:* $${data.monthlyFee}.00 ${data.currency}\n` +
+    `📅 *Fecha de Apertura / Corte:* ${data.nextBillingDate}\n` +
     `⏳ *Días restantes:* ${data.daysUntilDue} días\n` +
-    `🛡️ *Periodo de Gracia:* ${data.graceDays} días adicionales tras vencimiento.\n\n` +
+    `🛡️ *Periodo de Gracia:* ${data.graceDays} días adicionales tras la fecha.\n\n` +
     `*DATOS PARA TRANSFERENCIA SPEI:*\n` +
     `🏦 *Banco:* ${payment.bank || 'BBVA México'}\n` +
     `🔢 *CLABE Interbancaria:* \`${payment.clabe || '012180001234567890'}\`\n` +
     `👤 *Beneficiario:* ${payment.beneficiary || 'RedaySoft Soluciones Digitales'}\n` +
-    `📌 *Concepto / Referencia:* \`${payment.reference || 'MARIA-BONITA-01'}\`\n\n`;
+    `📌 *Concepto / Referencia:* \`${payment.reference || 'CAFETERIA-DEMO-01'}\`\n\n`;
 
   if (isOnlinePaymentEnabled) {
     message += `💳 *Pago Rápido en Línea:* ${payment.paymentLink}\n\n`;
@@ -331,8 +408,8 @@ export function generateWhatsappReminderMessage(statusData = null) {
 
   message +=
     `📸 *Confirmación de Pago:*\n` +
-    `Una vez realizada tu transferencia, por favor *comparte tu comprobante o captura de pago por este mismo medio* para registrarlo y mantener tu servicio activo sin interrupciones.\n\n` +
-    `_¡Agradecemos mucho tu confianza y preferencia!_`;
+    `Una vez realizada tu transferencia, por favor *comparte tu comprobante o captura de pago por este mismo medio* para aperturar tu nuevo ciclo y mantener tus pedidos de WhatsApp funcionando con normalidad.\n\n` +
+    `_¡Agradecemos mucho tu confianza y preferencia continua!_`;
 
   return message;
 }
@@ -346,17 +423,29 @@ export function renewBillingCycle({ pin, monthsToAdd = 1 }) {
     return { success: false, message: 'PIN de seguridad incorrecto.' };
   }
 
-  const currentDate = config.nextBillingDate ? new Date(config.nextBillingDate + 'T12:00:00Z') : new Date();
-  // Sumar mes(es)
-  currentDate.setUTCMonth(currentDate.getUTCMonth() + monthsToAdd);
+  // Avanzar fecha de corte asegurando el 1ro del mes siguiente
+  let newNextBillingDate;
+  if (config.nextBillingDate) {
+    const [y, m] = config.nextBillingDate.split('-').map(Number);
+    const targetDate = new Date(Date.UTC(y, m - 1 + monthsToAdd, 1));
+    const newYear = targetDate.getUTCFullYear();
+    const newMonth = String(targetDate.getUTCMonth() + 1).padStart(2, '0');
+    newNextBillingDate = `${newYear}-${newMonth}-01`;
+  } else {
+    const now = new Date();
+    const targetDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + monthsToAdd, 1));
+    const newYear = targetDate.getUTCFullYear();
+    const newMonth = String(targetDate.getUTCMonth() + 1).padStart(2, '0');
+    newNextBillingDate = `${newYear}-${newMonth}-01`;
+  }
 
-  const newYear = currentDate.getUTCFullYear();
-  const newMonth = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
-  const newDay = String(currentDate.getUTCDate()).padStart(2, '0');
-  const newNextBillingDate = `${newYear}-${newMonth}-${newDay}`;
+  const newPaidMonthsCount = (config.paidMonthsCount || 0) + monthsToAdd;
+  const newBillingCycleNumber = (config.billingCycleNumber || 2) + monthsToAdd;
 
   const overrideData = {
     nextBillingDate: newNextBillingDate,
+    paidMonthsCount: newPaidMonthsCount,
+    billingCycleNumber: newBillingCycleNumber,
     lastPaymentDate: new Date().toISOString(),
     lastRenewedBy: 'owner_pin',
     isSuspended: false, // Reactiva automáticamente la plataforma al registrar pago
@@ -370,7 +459,9 @@ export function renewBillingCycle({ pin, monthsToAdd = 1 }) {
   return {
     success: true,
     newNextBillingDate,
-    message: `Ciclo renovado exitosamente. Nueva fecha de corte: ${newNextBillingDate}`,
+    newPaidMonthsCount,
+    newBillingCycleNumber,
+    message: `Ciclo renovado exitosamente. Apertura del siguiente mes: ${newNextBillingDate}`,
   };
 }
 
