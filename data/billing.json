@@ -1,32 +1,84 @@
 {
+  "_comentario_general": "Configuración de Suscripción, Cobros por Adelantado y Notificaciones de Facturación para la cafetería",
+
+  "_comentario_monthlyFee": "Monto de la cuota mensual fija a cobrar por el servicio de la plataforma (en pesos mexicanos)",
   "monthlyFee": 300,
+
+  "_comentario_currency": "Moneda oficial configurada para cobros y recibos (ej. MXN)",
   "currency": "MXN",
+
+  "_comentario_commissionPerOrder": "Comisión variable por cada pedido recibido (0 = sin comisiones por comanda)",
   "commissionPerOrder": 0,
+
+  "_comentario_isSuspended": "Bandera de suspensión manual (true = bloquea pedidos por WhatsApp y pone el menú en modo solo lectura)",
   "isSuspended": false,
+
+  "_comentario_cycleDays": "Duración estándar en días de cada ciclo mensual (normalmente 30 días)",
   "cycleDays": 30,
+
+  "_comentario_graceDays": "Días de gracia tras llegar la fecha de apertura antes de pasar a modo solo lectura",
   "graceDays": 5,
+
+  "_comentario_reminderDaysBefore": "Días de anticipación para activar la ventana de aviso preventivo de cobro",
   "reminderDaysBefore": 5,
+
+  "_comentario_paymentTiming": "Modalidad de cobro: 'advance' indica pagos por adelantado para aperturar el mes de uso",
   "paymentTiming": "advance",
+
+  "_comentario_firstMonthFree": "true si el primer mes fue otorgado de cortesía (gratuito) sin cobro para el cliente",
   "firstMonthFree": true,
+
+  "_comentario_serviceStartDate": "Fecha inicial (YYYY-MM-DD) en que el restaurante fue dado de alta en la plataforma",
   "serviceStartDate": "2026-11-01",
+
+  "_comentario_billingCycleNumber": "Número de mes/ciclo actual que cursa el cliente (Mes 1 = cortesía gratis, Mes 2 = primer cobro con bienvenida, etc.)",
   "billingCycleNumber": 2,
+
+  "_comentario_paidMonthsCount": "Cantidad de mensualidades formalmente pagadas por el cliente a la fecha (excluye cortesías)",
   "paidMonthsCount": 0,
+
+  "_comentario_nextBillingDate": "Fecha límite / apertura para el siguiente periodo mensual de servicio (YYYY-MM-DD)",
   "nextBillingDate": "2026-12-01",
+
+  "_comentario_billingPhone": "Teléfono de WhatsApp del cliente con código de país para enviarle los recordatorios",
   "billingPhone": "529831226847",
+
+  "_comentario_whatsappRecipient": "Número alternativo o receptor de avisos y comandas",
   "whatsappRecipient": "529831226847",
+
+  "_comentario_ownerPin": "PIN de seguridad numérico para ingresar al panel /admin y autorizar renovaciones de ciclo",
   "ownerPin": "2026",
+
+  "_comentario_companyName": "Razón social o nombre de la empresa proveedora del software que emite los recibos",
   "companyName": "RedaySoft Soluciones Digitales",
+
+  "_comentario_supportEmail": "Correo de atención y soporte técnico mostrado en recibos y notificaciones",
   "supportEmail": "soporte@redaysoft.com",
+
+  "_comentario_telegramAdmin": "Credenciales opcionales para que un Bot de Telegram notifique al administrador cuándo cobrar",
   "telegramAdmin": {
     "botToken": "",
     "chatId": ""
   },
+
+  "_comentario_paymentInfo": "Datos bancarios para liquidación por transferencia SPEI o pasarela de pago",
   "paymentInfo": {
+    "_comentario_bank": "Nombre de la institución bancaria receptora (ej. BBVA México)",
     "bank": "BBVA México",
+
+    "_comentario_clabe": "Clave Bancaria Estandarizada (CLABE) de 18 dígitos para transferencias SPEI",
     "clabe": "012180001234567890",
+
+    "_comentario_beneficiary": "Nombre del titular o beneficiario de la cuenta",
     "beneficiary": "RedaySoft Soluciones Digitales",
+
+    "_comentario_reference": "Concepto o referencia única para identificar el pago de esta cafetería demo",
     "reference": "CAFETERIA-DEMO-01",
+
+    "_comentario_paymentLink": "Enlace directo opcional de pasarela de pago en línea (Stripe, Mercado Pago, etc.)",
     "paymentLink": "https://buy.stripe.com/test_cafeteria_demo_mensualidad",
+
+    "_comentario_enablePaymentLink": "false para liquidación exclusiva SPEI; true para habilitar botón de pago con tarjeta",
     "enablePaymentLink": false
   }
 }
