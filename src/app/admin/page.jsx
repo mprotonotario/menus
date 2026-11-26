@@ -46,6 +46,11 @@ export default function AdminBillingPage() {
   const [ordersFilter, setOrdersFilter] = useState('all'); // 'all' | 'mesa' | 'llevar'
   const [subStatus, setSubStatus] = useState(null);
 
+  // Monitor de Visitantes por IP & Dispositivo
+  const [visitorStats, setVisitorStats] = useState(null);
+  const [visitorsFilter, setVisitorsFilter] = useState('all'); // 'all' | 'mobile' | 'desktop'
+  const [isLoadingVisitors, setIsLoadingVisitors] = useState(false);
+
   // Modales y Feedback
   const [selectedReceiptForModal, setSelectedReceiptForModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
@@ -78,6 +83,17 @@ export default function AdminBillingPage() {
     setSummary(getBillingSummary());
     setOrders(getStoredOrders());
     setHistory(getBillingHistory());
+
+    // Cargar estadísticas de visitantes desde logs/visitors.log
+    try {
+      const vRes = await fetch('/api/visitors/record?stats=true', { cache: 'no-store' }).then((r) => r.json());
+      if (vRes?.success && vRes.stats) {
+        setVisitorStats(vRes.stats);
+      }
+    } catch (e) {
+      console.warn('Error reading visitors stats:', e);
+    }
+
     try {
       const res = await fetch('/api/billing/status', { cache: 'no-store' }).then((r) => r.json());
       if (res?.success && res.billingStatus) {
@@ -88,6 +104,21 @@ export default function AdminBillingPage() {
       console.warn('Error reading /api/billing/status:', e);
     }
     setSubStatus(evaluateBillingStatus());
+  };
+
+  const handleRefreshVisitors = async () => {
+    setIsLoadingVisitors(true);
+    try {
+      const vRes = await fetch('/api/visitors/record?stats=true', { cache: 'no-store' }).then((r) => r.json());
+      if (vRes?.success && vRes.stats) {
+        setVisitorStats(vRes.stats);
+        showFeedbackToast('success', 'Bitácora de Visitantes Actualizada', 'Se han cargado los accesos más recientes de logs/visitors.log.');
+      }
+    } catch (err) {
+      showFeedbackToast('error', 'Error al consultar log', err.message);
+    } finally {
+      setIsLoadingVisitors(false);
+    }
   };
 
   const showFeedbackToast = (type, title, message) => {
@@ -665,6 +696,25 @@ export default function AdminBillingPage() {
     if (ordersFilter === 'pickup') return orders.filter((o) => o.orderType?.includes('Buscar') || o.orderType === 'Para Llevar' || o.orderType === 'Mesa');
     return orders;
   }, [orders, ordersFilter]);
+
+  // Filtrado de visitantes del log
+  const filteredVisitors = useMemo(() => {
+    if (!visitorStats?.visitors) return [];
+    if (visitorsFilter === 'all') return visitorStats.visitors;
+    if (visitorsFilter === 'mobile') {
+      return visitorStats.visitors.filter((v) => {
+        const d = (v.deviceType || '').toLowerCase();
+        return d.includes('móvil') || d.includes('movil') || d.includes('smartphone');
+      });
+    }
+    if (visitorsFilter === 'desktop') {
+      return visitorStats.visitors.filter((v) => {
+        const d = (v.deviceType || '').toLowerCase();
+        return d.includes('computadora') || d.includes('escritorio');
+      });
+    }
+    return visitorStats.visitors;
+  }, [visitorStats, visitorsFilter]);
 
   // Si no está autenticado, mostrar pantalla de PIN
   if (!isAuthenticated) {
@@ -1330,6 +1380,306 @@ export default function AdminBillingPage() {
                       </td>
                     </tr>
                   ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Sección: Monitor de Tráfico en Vivo & Bitácora de Visitantes por IP */}
+        <section style={{ ...styles.tableSection, marginTop: '2.5rem' }}>
+          <div style={styles.tableHeaderRow}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <h3 style={styles.sectionHeading}>🌐 Monitor de Tráfico & Bitácora de Visitantes</h3>
+                <span
+                  style={{
+                    background: '#dcfce7',
+                    color: '#15803d',
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  🟢 Registro Activo en logs/visitors.log
+                </span>
+              </div>
+              <p style={styles.sectionDesc}>
+                Monitoreo interno de clientes e IPs que acceden al Menú Digital. Si una IP re-ingresa, se actualiza automáticamente su fecha, hora y dispositivo.
+              </p>
+            </div>
+
+            {/* Botones de acción y filtros */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={handleRefreshVisitors}
+                disabled={isLoadingVisitors}
+                style={{
+                  ...styles.actionBtn,
+                  background: '#2563eb',
+                  padding: '0.45rem 0.85rem',
+                  fontSize: '0.82rem',
+                }}
+                title="Volver a leer la bitácora de logs/visitors.log"
+              >
+                {isLoadingVisitors ? '⏳ Cargando...' : '🔄 Refrescar Accesos'}
+              </button>
+              <a
+                href="/api/visitors/record?view=raw"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  ...styles.actionBtn,
+                  background: '#475569',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.45rem 0.85rem',
+                  fontSize: '0.82rem',
+                }}
+                title="Abrir el archivo plano de logs/visitors.log"
+              >
+                📄 Ver Bitácora Cruda (.log)
+              </a>
+            </div>
+          </div>
+
+          {/* Mini Tarjetas de Métricas de Visitantes */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: '1rem',
+              margin: '1.2rem 0 1.5rem 0',
+            }}
+          >
+            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                👥 IPs Únicas Registradas
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#27170e', marginTop: '0.2rem' }}>
+                {visitorStats?.totalIps ?? 0}
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                Visitantes distintos identificados
+              </span>
+            </div>
+
+            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                🔄 Total de Entradas / Visitas
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', marginTop: '0.2rem' }}>
+                {visitorStats?.totalVisits ?? 0}
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                Aperturas y re-ingresos al sitio
+              </span>
+            </div>
+
+            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                📱 Clientes en Celular (Móvil)
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#16a34a', marginTop: '0.2rem' }}>
+                {visitorStats?.mobileCount ?? 0}{' '}
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#15803d' }}>
+                  ({visitorStats?.mobilePercent ?? 0}%)
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                Smartphones Android & iPhone
+              </span>
+            </div>
+
+            <div style={{ background: '#faf7f2', padding: '1rem 1.2rem', borderRadius: '12px', border: '1px solid #ebd9c5' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#8c5936', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                💻 Clientes en Computadora
+              </span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.2rem' }}>
+                {visitorStats?.desktopCount ?? 0}{' '}
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#6d28d9' }}>
+                  ({visitorStats?.desktopPercent ?? 0}%)
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                Escritorio Windows, Mac y Linux
+              </span>
+            </div>
+          </div>
+
+          {/* Barra Visual de Distribución de Dispositivos */}
+          {Boolean(visitorStats?.totalIps) && (
+            <div style={{ marginBottom: '1.5rem', background: '#faf7f2', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #ebd9c5' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', color: '#27170e' }}>
+                <span>📱 Móvil: {visitorStats?.mobilePercent ?? 0}%</span>
+                <span>💻 Computadora: {visitorStats?.desktopPercent ?? 0}%</span>
+              </div>
+              <div style={{ height: '10px', width: '100%', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden', display: 'flex' }}>
+                <div style={{ width: `${visitorStats?.mobilePercent ?? 0}%`, background: '#16a34a', transition: 'width 0.4s' }} title={`Móvil: ${visitorStats?.mobilePercent}%`} />
+                <div style={{ width: `${visitorStats?.desktopPercent ?? 0}%`, background: '#7c3aed', transition: 'width 0.4s' }} title={`Computadora: ${visitorStats?.desktopPercent}%`} />
+              </div>
+            </div>
+          )}
+
+          {/* Filtros de la Tabla de Visitantes */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '0.85rem' }}>
+            <div style={styles.filterButtonGroup}>
+              <button
+                type="button"
+                onClick={() => setVisitorsFilter('all')}
+                style={{
+                  ...styles.filterBtn,
+                  background: visitorsFilter === 'all' ? '#c25428' : '#ffffff',
+                  color: visitorsFilter === 'all' ? '#ffffff' : '#27170e',
+                }}
+              >
+                Todas las IPs ({visitorStats?.totalIps ?? 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisitorsFilter('mobile')}
+                style={{
+                  ...styles.filterBtn,
+                  background: visitorsFilter === 'mobile' ? '#c25428' : '#ffffff',
+                  color: visitorsFilter === 'mobile' ? '#ffffff' : '#27170e',
+                }}
+              >
+                📱 Solo Móvil ({visitorStats?.mobileCount ?? 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisitorsFilter('desktop')}
+                style={{
+                  ...styles.filterBtn,
+                  background: visitorsFilter === 'desktop' ? '#c25428' : '#ffffff',
+                  color: visitorsFilter === 'desktop' ? '#ffffff' : '#27170e',
+                }}
+              >
+                💻 Solo Computadora ({visitorStats?.desktopCount ?? 0})
+              </button>
+            </div>
+
+            {visitorStats?.lastUpdate && (
+              <span style={{ fontSize: '0.78rem', color: '#6b5c52' }}>
+                🕒 Última actividad registrada: <strong>{visitorStats.lastUpdate}</strong>
+              </span>
+            )}
+          </div>
+
+          {/* Tabla de Visitantes */}
+          <div style={styles.tableResponsive}>
+            <table style={styles.ordersTable}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>#</th>
+                  <th style={styles.th}>IP Pública</th>
+                  <th style={styles.th}>Dispositivo</th>
+                  <th style={styles.th}>Sistema Operativo & Navegador</th>
+                  <th style={styles.th}>Última Entrada (Cancún)</th>
+                  <th style={styles.th}>Primera Entrada</th>
+                  <th style={styles.th}>Visitas</th>
+                  <th style={styles.th}>Última Sección</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVisitors.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#6b5c52' }}>
+                      <div style={{ fontSize: '1.8rem', marginBottom: '0.4rem' }}>🌐</div>
+                      <strong>No hay registros de visitantes en este filtro.</strong>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.3rem' }}>
+                        Al abrir el Menú Digital desde cualquier celular o PC, las IPs públicas y sus dispositivos se registrarán aquí automáticamente.
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVisitors.map((vis, idx) => {
+                    const isMobile = (vis.deviceType || '').toLowerCase().includes('móvil') || (vis.deviceType || '').toLowerCase().includes('smartphone');
+                    const isTablet = (vis.deviceType || '').toLowerCase().includes('tablet');
+                    return (
+                      <tr key={vis.ip || idx} style={styles.tr}>
+                        <td style={{ ...styles.td, fontSize: '0.8rem', color: '#888', width: '40px' }}>
+                          #{String(idx + 1).padStart(3, '0')}
+                        </td>
+                        <td style={styles.td}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <code style={{ background: '#f1ece6', padding: '0.18rem 0.45rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.85rem' }}>
+                              {vis.ip}
+                            </code>
+                            {vis.totalVisits > 1 && (
+                              <span
+                                style={{
+                                  background: '#dbeafe',
+                                  color: '#1e40af',
+                                  padding: '0.15rem 0.4rem',
+                                  borderRadius: '9999px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                }}
+                                title="Cliente que ha re-ingresado a la plataforma"
+                              >
+                                Recurrente
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={styles.td}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              background: isMobile ? '#dcfce7' : isTablet ? '#fef3c7' : '#ede9fe',
+                              color: isMobile ? '#166534' : isTablet ? '#92400e' : '#5b21b6',
+                            }}
+                          >
+                            <span>{isMobile ? '📱' : isTablet ? '📲' : '💻'}</span>
+                            {vis.deviceType || 'Computadora'}
+                          </span>
+                        </td>
+                        <td style={{ ...styles.td, fontSize: '0.83rem', color: '#374151' }}>
+                          <strong>{vis.os || 'Desconocido'}</strong>
+                          <span style={{ color: '#6b7280', display: 'block', fontSize: '0.76rem' }}>
+                            {vis.browser || 'Navegador Web'}
+                          </span>
+                        </td>
+                        <td style={{ ...styles.td, fontSize: '0.83rem' }}>
+                          <strong style={{ color: '#111827' }}>{vis.lastVisit}</strong>
+                        </td>
+                        <td style={{ ...styles.td, fontSize: '0.8rem', color: '#6b7280' }}>
+                          {vis.firstVisit || vis.lastVisit}
+                        </td>
+                        <td style={styles.td}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              background: vis.totalVisits > 1 ? '#e0f2fe' : '#f3f4f6',
+                              color: vis.totalVisits > 1 ? '#0369a1' : '#374151',
+                              fontWeight: 800,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.78rem',
+                            }}
+                          >
+                            {vis.totalVisits || 1} {vis.totalVisits === 1 ? 'visita' : 'visitas'}
+                          </span>
+                        </td>
+                        <td style={{ ...styles.td, fontSize: '0.8rem', color: '#6b7280' }}>
+                          <code style={{ background: '#f8fafc', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>
+                            {vis.lastPath || '/'}
+                          </code>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

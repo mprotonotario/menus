@@ -234,3 +234,62 @@ export function recordVisitorAccess({ ip, userAgent, pathVisited = '/' }) {
 
   return visitorsMap[ip];
 }
+
+/**
+ * Obtiene las estadísticas agregadas y la lista ordenada de visitantes para el panel /admin
+ */
+export function getVisitorsStats() {
+  const logDir = path.join(process.cwd(), 'logs');
+  const storeFilePath = path.join(logDir, '.visitors_store.json');
+  const logFilePath = path.join(logDir, 'visitors.log');
+
+  let visitorsMap = {};
+  if (fs.existsSync(storeFilePath)) {
+    try {
+      const raw = fs.readFileSync(storeFilePath, 'utf8');
+      visitorsMap = JSON.parse(raw);
+    } catch (e) {
+      visitorsMap = {};
+    }
+  }
+
+  const list = Object.values(visitorsMap).sort((a, b) => {
+    return (b.lastVisit || '').localeCompare(a.lastVisit || '');
+  });
+
+  const totalIps = list.length;
+  const totalVisits = list.reduce((sum, item) => sum + (Number(item.totalVisits) || 1), 0);
+
+  let mobileCount = 0;
+  let desktopCount = 0;
+  let tabletCount = 0;
+  let botCount = 0;
+
+  list.forEach((item) => {
+    const d = (item.deviceType || '').toLowerCase();
+    if (d.includes('móvil') || d.includes('movil') || d.includes('smartphone')) mobileCount++;
+    else if (d.includes('computadora') || d.includes('escritorio')) desktopCount++;
+    else if (d.includes('tablet')) tabletCount++;
+    else if (d.includes('bot')) botCount++;
+    else desktopCount++;
+  });
+
+  const mobilePercent = totalIps > 0 ? Math.round((mobileCount / totalIps) * 100) : 0;
+  const desktopPercent = totalIps > 0 ? Math.round((desktopCount / totalIps) * 100) : 0;
+  const tabletPercent = totalIps > 0 ? Math.round((tabletCount / totalIps) * 100) : 0;
+
+  return {
+    totalIps,
+    totalVisits,
+    mobileCount,
+    desktopCount,
+    tabletCount,
+    botCount,
+    mobilePercent,
+    desktopPercent,
+    tabletPercent,
+    lastUpdate: list[0]?.lastVisit || null,
+    visitors: list,
+    logFileExists: fs.existsSync(logFilePath),
+  };
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { extractClientIp, recordVisitorAccess } from '../../../../utils/visitorLogger';
+import { extractClientIp, recordVisitorAccess, getVisitorsStats } from '../../../../utils/visitorLogger';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +16,15 @@ export async function POST(request) {
 async function handleLogRequest(request) {
   try {
     const { searchParams } = new URL(request.url);
+
+    // Consulta de estadísticas para el panel administrativo
+    if (searchParams.get('stats') === 'true' || searchParams.get('action') === 'stats') {
+      const stats = getVisitorsStats();
+      return NextResponse.json({
+        success: true,
+        stats,
+      });
+    }
 
     // Si se pide ver el log directamente en texto plano
     if (searchParams.get('view') === 'raw' || searchParams.get('format') === 'text') {
