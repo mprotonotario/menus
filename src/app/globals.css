@@ -3091,14 +3091,14 @@ img {
 }
 
 .cart-drawer-title {
-  font-family: var(--font-serif);
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 1.22rem;
+  font-weight: 800;
   color: var(--espresso-900);
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 .cart-drawer-body {
@@ -3144,12 +3144,12 @@ img {
 }
 
 .cart-item-title {
-  font-family: var(--font-serif);
-  font-size: 0.98rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--espresso-900);
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .cart-item-custom-notes {

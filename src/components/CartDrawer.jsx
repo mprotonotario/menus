@@ -363,7 +363,7 @@ export default function CartDrawer() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #ebd9c5' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                     <span style={{ fontSize: '1.05rem' }}>⚙️</span>
-                    <strong style={{ fontFamily: 'var(--font-serif)', fontSize: '1.02rem', fontWeight: 700, color: 'var(--espresso-900)', letterSpacing: '-0.01em' }}>
+                    <strong style={{ fontFamily: 'var(--font-sans)', fontSize: '0.98rem', fontWeight: 800, color: 'var(--espresso-900)', letterSpacing: '-0.015em' }}>
                       Configuración del Pedido
                     </strong>
                   </div>
