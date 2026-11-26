@@ -331,8 +331,21 @@ img {
   transition: transform var(--transition-fast);
 }
 
-.brand-logo:hover .brand-icon-wrapper {
-  transform: rotate(-6deg) scale(1.05);
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(41, 24, 14, 0.2);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+  border: 2px solid var(--cream-200);
+  background: #ffffff;
+}
+
+.brand-logo:hover .brand-icon-wrapper,
+.brand-logo:hover .brand-logo-img {
+  transform: rotate(-5deg) scale(1.05);
 }
 
 .brand-text {

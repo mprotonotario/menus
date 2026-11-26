@@ -8,21 +8,37 @@ export default function Footer() {
   const brand = BUSINESS_DATA.brand || {};
   const socials = BUSINESS_DATA.socials || {};
 
+  const brandLogoRaw = brand.logo || BUSINESS_DATA.logo;
+  const brandLogo = brandLogoRaw
+    ? brandLogoRaw.replace(/\\/g, '/').startsWith('/')
+      ? brandLogoRaw.replace(/\\/g, '/')
+      : `/${brandLogoRaw.replace(/\\/g, '/')}`
+    : null;
+
   return (
     <footer className="site-footer">
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand-col">
             <div className="brand-logo" style={{ marginBottom: '0.5rem' }}>
-              <div className="brand-icon-wrapper" style={{ background: 'var(--terracotta-500)' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-                  <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-                </svg>
-              </div>
+              {brandLogo ? (
+                <img
+                  src={brandLogo}
+                  alt={brand.name || 'Logo Cafetería'}
+                  className="brand-logo-img"
+                  style={{ border: '2px solid rgba(255, 255, 255, 0.2)' }}
+                />
+              ) : (
+                <div className="brand-icon-wrapper" style={{ background: 'var(--terracotta-500)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                  </svg>
+                </div>
+              )}
               <div className="brand-text">
-                <span className="brand-title" style={{ color: '#ffffff' }}>{brand.name || 'María Bonita'}</span>
-                <span className="brand-subtitle" style={{ color: 'var(--caramel-500)' }}>{brand.tagline || 'Cafetería & Panadería'}</span>
+                <span className="brand-title" style={{ color: '#ffffff' }}>{brand.title || brand.name || 'Cafetería Demo'}</span>
+                <span className="brand-subtitle" style={{ color: 'var(--caramel-500)' }}>{brand.subtitle || brand.tagline || 'Menú Digital & Pedidos'}</span>
               </div>
             </div>
             <p id="footerBrandDesc">

@@ -30,9 +30,10 @@ export async function GET() {
     // Reconstruir BUSINESS_DATA modularizado
     const businessData = {
       brand: brand.brand || {},
+      logo: brand.logo || brand.brand?.logo || '',
       hero: brand.hero || {},
-      name: brand.name || brand.brand?.name || 'Cafetería María Bonita',
-      tradeName: brand.tradeName || brand.brand?.tradeName || 'María Bonita Cafetería & Panadería',
+      name: brand.name || brand.brand?.name || 'Cafetería Demo',
+      tradeName: brand.tradeName || brand.brand?.tradeName || 'Cafetería Demo • Menú Digital',
       slogan: brand.slogan || brand.brand?.slogan || '',
       subheadline: brand.subheadline || brand.brand?.subheadline || '',
       location: location.location || {},

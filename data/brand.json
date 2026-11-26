@@ -3,8 +3,10 @@
     "name": "Cafetería Demo",
     "title": "Café Demo",
     "subtitle": "Menú Digital & Pedidos Online",
-    "footerSubtitle": "Demostración de Menú Digital"
+    "footerSubtitle": "Demostración de Menú Digital",
+    "logo": "assets/config/logo_cafeteria.jpg"
   },
+  "logo": "assets/config/logo_cafeteria.jpg",
   "hero": {
     "badgeIcon": "✨",
     "badgeText": "Demostración Interactiva • Menú Digital",

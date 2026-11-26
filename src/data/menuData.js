@@ -23,9 +23,10 @@ const MENU_ITEMS = productsData;
 
 const BUSINESS_DATA = {
   brand: brandData.brand || {},
+  logo: brandData.logo || brandData.brand?.logo || '',
   hero: brandData.hero || {},
-  name: brandData.name || brandData.brand?.name || 'Cafetería María Bonita',
-  tradeName: brandData.tradeName || brandData.brand?.tradeName || 'María Bonita Cafetería & Panadería',
+  name: brandData.name || brandData.brand?.name || 'Cafetería Demo',
+  tradeName: brandData.tradeName || brandData.brand?.tradeName || 'Cafetería Demo • Menú Digital',
   slogan: brandData.slogan || brandData.brand?.slogan || '',
   subheadline: brandData.subheadline || brandData.brand?.subheadline || '',
   location: locationData.location || {},
