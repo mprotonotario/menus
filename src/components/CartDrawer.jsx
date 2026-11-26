@@ -25,10 +25,17 @@ export default function CartDrawer() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('efectivo'); // 'efectivo' | 'transferencia'
+  const [step, setStep] = useState(1); // 1: revisión de platillos, 2: datos de entrega y pago
   const [formError, setFormError] = useState('');
   const [billingStatus, setBillingStatus] = useState(null);
 
   const allowTransfer = BUSINESS_DATA?.paymentConfig?.allowTransfer !== false;
+
+  useEffect(() => {
+    if (cart.length === 0 && step !== 1) {
+      setStep(1);
+    }
+  }, [cart.length, step]);
 
   useEffect(() => {
     let isMounted = true;
@@ -171,10 +178,36 @@ export default function CartDrawer() {
       <div className="cart-drawer-panel">
         {/* Encabezado del Carrito */}
         <div className="cart-drawer-header">
-          <h3 className="cart-drawer-title">
-            <span>🛍️</span>
-            <span>Mi Pedido / Comanda</span>
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            {step === 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1);
+                  setFormError('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: 'var(--espresso-900)',
+                  padding: '0.2rem 0.4rem',
+                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                aria-label="Volver a los platillos"
+                title="Volver a los platillos"
+              >
+                ←
+              </button>
+            )}
+            <h3 className="cart-drawer-title" style={{ margin: 0 }}>
+              <span>{step === 1 ? '🛍️' : '📋'}</span>
+              <span>{step === 1 ? 'Mi Pedido' : 'Entrega y Pago'}</span>
+            </h3>
+          </div>
           <button
             type="button"
             id="closeCartBtn"
@@ -186,7 +219,36 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* Cuerpo del Carrito con Ítems */}
+        {/* Barra de progreso de pasos (cuando hay platillos en la comanda) */}
+        {cart.length > 0 && (
+          <div className="cart-stepper-bar">
+            <div
+              className={`cart-stepper-step ${step === 1 ? 'active' : 'completed'}`}
+              onClick={() => {
+                setStep(1);
+                setFormError('');
+              }}
+            >
+              <span className="cart-stepper-circle">{step > 1 ? '✓' : '1'}</span>
+              <span>Platillos ({totalItemsCount})</span>
+            </div>
+            <div
+              className="cart-stepper-line"
+              style={{ background: step === 2 ? 'var(--espresso-900)' : 'var(--border-light)' }}
+            />
+            <div
+              className={`cart-stepper-step ${step === 2 ? 'active' : ''}`}
+              onClick={() => {
+                if (cart.length > 0) setStep(2);
+              }}
+            >
+              <span className="cart-stepper-circle">2</span>
+              <span>Entrega y Pago</span>
+            </div>
+          </div>
+        )}
+
+        {/* Cuerpo del Carrito con Ítems (Paso 1) o Formulario (Paso 2) */}
         <div className="cart-drawer-body">
           {cart.length === 0 ? (
             <div className="cart-empty-state">
@@ -204,7 +266,8 @@ export default function CartDrawer() {
                 Ver el menú
               </button>
             </div>
-          ) : (
+          ) : step === 1 ? (
+            /* PASO 1: REVISIÓN DE PLATILLOS */
             <div className="cart-items-list">
               {cart.map((item, idx) => (
                 <div className="cart-item-card" key={idx}>
@@ -245,208 +308,278 @@ export default function CartDrawer() {
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Pie del Carrito con Subtotal y Botón de WhatsApp */}
-        {cart.length > 0 && (
-          <div className="cart-drawer-footer">
-            <div className="order-type-box" style={{ marginBottom: '1rem' }}>
-              {/* Encabezado decorativo de configuración */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', paddingBottom: '0.55rem', borderBottom: '1.5px solid rgba(194, 84, 40, 0.12)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                  <span style={{ fontSize: '1.05rem' }}>⚙️</span>
-                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#2a170e', letterSpacing: '-0.01em' }}>
-                    Configuración del Pedido
-                  </span>
+          ) : (
+            /* PASO 2: DATOS DE ENTREGA Y PAGO */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Tarjeta resumen rápida de platillos */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #faf5ef 100%)',
+                  border: '1.5px solid #ebd9c5',
+                  borderRadius: '12px',
+                  padding: '0.65rem 0.85rem',
+                  boxShadow: '0 2px 8px rgba(60, 35, 22, 0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  <span style={{ fontSize: '1.15rem' }}>🛍️</span>
+                  <div>
+                    <strong style={{ fontSize: '0.84rem', color: '#2a170e', display: 'block' }}>
+                      {totalItemsCount} {totalItemsCount === 1 ? 'platillo' : 'platillos'} en tu pedido
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: '#8c6549', fontWeight: 600 }}>
+                      Subtotal: {formatMoney(cartSubtotal)} MXN
+                    </span>
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#fceddf', color: '#c25428', padding: '0.2rem 0.55rem', borderRadius: '20px', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
-                  Paso Final
-                </span>
-              </div>
-
-              {/* Selector de Servicio */}
-              <span className="order-type-label">🛵 Modalidad de Entrega:</span>
-              <div className="order-type-tabs">
                 <button
                   type="button"
-                  className={`order-type-tab-btn ${orderType === 'pickup' ? 'active' : ''}`}
                   onClick={() => {
-                    setOrderType('pickup');
+                    setStep(1);
                     setFormError('');
                   }}
-                >
-                  🛍️ Pasar a buscar
-                </button>
-                <button
-                  type="button"
-                  className={`order-type-tab-btn ${orderType === 'delivery' ? 'active' : ''}`}
-                  onClick={() => {
-                    setOrderType('delivery');
-                    setFormError('');
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #debda2',
+                    color: '#c25428',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
                   }}
                 >
-                  🛵 A Domicilio
+                  Modificar ✏️
                 </button>
               </div>
 
-              {/* Nombre del cliente */}
-              <div style={{ marginTop: '0.75rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
-                  <span>👤 Nombre de quien ordena:</span> <span style={{ color: '#dc2626' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  className="table-input-field"
-                  style={{ marginTop: 0 }}
-                  value={customerName}
-                  onChange={(e) => {
-                    setCustomerName(e.target.value);
-                    if (formError) setFormError('');
-                  }}
-                  placeholder="Ingresa tu nombre y apellido"
-                  maxLength={50}
-                />
-              </div>
+              {/* Caja de Configuración del Pedido */}
+              <div className="order-type-box">
+                {/* Selector de Modalidad */}
+                <span className="order-type-label">🛵 Modalidad de Entrega:</span>
+                <div className="order-type-tabs">
+                  <button
+                    type="button"
+                    className={`order-type-tab-btn ${orderType === 'pickup' ? 'active' : ''}`}
+                    onClick={() => {
+                      setOrderType('pickup');
+                      setFormError('');
+                    }}
+                  >
+                    🛍️ Pasar a buscar
+                  </button>
+                  <button
+                    type="button"
+                    className={`order-type-tab-btn ${orderType === 'delivery' ? 'active' : ''}`}
+                    onClick={() => {
+                      setOrderType('delivery');
+                      setFormError('');
+                    }}
+                  >
+                    🛵 A Domicilio
+                  </button>
+                </div>
 
-              {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
-              {orderType === 'delivery' ? (
+                {/* Nombre del cliente */}
                 <div style={{ marginTop: '0.75rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
-                    <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
+                    <span>👤 Nombre de quien ordena:</span> <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
                     className="table-input-field"
                     style={{ marginTop: 0 }}
-                    value={deliveryAddress}
+                    value={customerName}
                     onChange={(e) => {
-                      setDeliveryAddress(e.target.value);
+                      setCustomerName(e.target.value);
                       if (formError) setFormError('');
                     }}
-                    placeholder="Calle, número exterior/interior y colonia"
-                    maxLength={120}
-                  />
-                  <input
-                    type="text"
-                    className="table-input-field"
-                    style={{ marginTop: '0.45rem', fontSize: '0.8rem' }}
-                    value={deliveryNotes}
-                    onChange={(e) => setDeliveryNotes(e.target.value)}
-                    placeholder="🧭 Referencias de llegada (ej. Fachada blanca, portón café)"
-                    maxLength={100}
+                    placeholder="Ingresa tu nombre y apellido"
+                    maxLength={50}
                   />
                 </div>
-              ) : (
-                <div style={{ marginTop: '0.65rem', background: 'linear-gradient(135deg, #fffcf9 0%, #faf3eb 100%)', border: '1.5px dashed #debda2', borderRadius: '10px', padding: '0.65rem 0.85rem', fontSize: '0.78rem', color: '#4a382c', lineHeight: 1.4, display: 'flex', gap: '0.55rem', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }}>📍</span>
-                  <div>
-                    <strong style={{ color: '#2a170e', display: 'block', marginBottom: '0.15rem' }}>Recoger en barra del establecimiento:</strong>
-                    <span>{BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro, Chetumal, Q. Roo'}</span>
-                    <div style={{ fontSize: '0.72rem', color: '#8c6549', marginTop: '0.25rem', fontWeight: 600 }}>
-                      ✨ Prepararemos tu orden al momento para que la disfrutes fresca.
+
+                {/* Domicilio de entrega si es delivery, o aviso de recolección si es pickup */}
+                {orderType === 'delivery' ? (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700, color: '#3c2316', marginBottom: '0.25rem' }}>
+                      <span>📍 Domicilio de entrega:</span> <span style={{ color: '#dc2626' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="table-input-field"
+                      style={{ marginTop: 0 }}
+                      value={deliveryAddress}
+                      onChange={(e) => {
+                        setDeliveryAddress(e.target.value);
+                        if (formError) setFormError('');
+                      }}
+                      placeholder="Calle, número exterior/interior y colonia"
+                      maxLength={120}
+                    />
+                    <input
+                      type="text"
+                      className="table-input-field"
+                      style={{ marginTop: '0.45rem', fontSize: '0.8rem' }}
+                      value={deliveryNotes}
+                      onChange={(e) => setDeliveryNotes(e.target.value)}
+                      placeholder="🧭 Referencias de llegada (ej. Fachada blanca, portón café)"
+                      maxLength={100}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '0.65rem', background: 'linear-gradient(135deg, #fffcf9 0%, #faf3eb 100%)', border: '1.5px dashed #debda2', borderRadius: '10px', padding: '0.65rem 0.85rem', fontSize: '0.78rem', color: '#4a382c', lineHeight: 1.4, display: 'flex', gap: '0.55rem', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }}>📍</span>
+                    <div>
+                      <strong style={{ color: '#2a170e', display: 'block', marginBottom: '0.15rem' }}>Recoger en barra del establecimiento:</strong>
+                      <span>{BUSINESS_DATA.location?.address || 'Av. Álvaro Obregón #168, Col. Centro, Chetumal, Q. Roo'}</span>
+                      <div style={{ fontSize: '0.72rem', color: '#8c6549', marginTop: '0.25rem', fontWeight: 600 }}>
+                        ✨ Prepararemos tu orden al momento para que la disfrutes fresca.
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Forma de pago */}
-              <div style={{ marginTop: '0.75rem' }}>
-                <label className="order-type-label" style={{ marginBottom: '0.35rem' }}>
-                  💳 Forma de pago:
-                </label>
-                {allowTransfer ? (
-                  <>
-                    <div className="order-type-tabs">
-                      <button
-                        type="button"
-                        className={`order-type-tab-btn ${paymentMethod === 'efectivo' ? 'active' : ''}`}
-                        onClick={() => setPaymentMethod('efectivo')}
-                      >
-                        💵 Efectivo
-                      </button>
-                      <button
-                        type="button"
-                        className={`order-type-tab-btn ${paymentMethod === 'transferencia' ? 'active' : ''}`}
-                        onClick={() => setPaymentMethod('transferencia')}
-                      >
-                        🏦 Transferencia
-                      </button>
-                    </div>
-                    {paymentMethod === 'transferencia' && (
-                      <div style={{ marginTop: '0.5rem', background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '10px', padding: '0.55rem 0.75rem', fontSize: '0.76rem', color: '#0369a1', lineHeight: 1.4, display: 'flex', gap: '0.45rem', alignItems: 'flex-start' }}>
-                        <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>ℹ️</span>
-                        <span>El establecimiento te compartirá los datos bancarios (CLABE / Cuenta) por WhatsApp para realizar tu transferencia.</span>
+                {/* Forma de pago */}
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label className="order-type-label" style={{ marginBottom: '0.35rem' }}>
+                    💳 Forma de pago:
+                  </label>
+                  {allowTransfer ? (
+                    <>
+                      <div className="order-type-tabs">
+                        <button
+                          type="button"
+                          className={`order-type-tab-btn ${paymentMethod === 'efectivo' ? 'active' : ''}`}
+                          onClick={() => setPaymentMethod('efectivo')}
+                        >
+                          💵 Efectivo
+                        </button>
+                        <button
+                          type="button"
+                          className={`order-type-tab-btn ${paymentMethod === 'transferencia' ? 'active' : ''}`}
+                          onClick={() => setPaymentMethod('transferencia')}
+                        >
+                          🏦 Transferencia
+                        </button>
                       </div>
-                    )}
-                  </>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', background: '#ffffff', border: '1.5px solid #d1fae5', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
-                    <span style={{ fontSize: '1.25rem' }}>💵</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534' }}>Pago en Efectivo</div>
-                      <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Liquidación directa al momento de recibir o recoger</div>
+                      {paymentMethod === 'transferencia' && (
+                        <div style={{ marginTop: '0.5rem', background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '10px', padding: '0.55rem 0.75rem', fontSize: '0.76rem', color: '#0369a1', lineHeight: 1.4, display: 'flex', gap: '0.45rem', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>ℹ️</span>
+                          <span>El establecimiento te compartirá los datos bancarios (CLABE / Cuenta) por WhatsApp para realizar tu transferencia.</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.6rem 0.85rem', background: '#ffffff', border: '1.5px solid #d1fae5', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                      <span style={{ fontSize: '1.25rem' }}>💵</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534' }}>Pago en Efectivo</div>
+                        <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Liquidación directa al momento de recibir o recoger</div>
+                      </div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>✓ Activo</span>
                     </div>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>✓ Activo</span>
+                  )}
+                </div>
+
+                {/* Mensaje de validación amigable */}
+                {formError && (
+                  <div style={{ marginTop: '0.75rem', color: '#b91c1c', fontSize: '0.8rem', background: '#fee2e2', border: '1px solid #fecaca', padding: '0.5rem 0.75rem', borderRadius: '8px', textAlign: 'center', fontWeight: 600 }}>
+                    ⚠️ {formError}
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </div>
 
-              {/* Mensaje de validación amigable */}
-              {formError && (
-                <div style={{ marginTop: '0.65rem', color: '#b91c1c', fontSize: '0.78rem', background: '#fee2e2', border: '1px solid #fecaca', padding: '0.45rem 0.65rem', borderRadius: '6px', textAlign: 'center', fontWeight: 600 }}>
-                  ⚠️ {formError}
+        {/* Pie del Carrito */}
+        {cart.length > 0 && (
+          <div className="cart-drawer-footer">
+            {step === 1 ? (
+              /* FOOTER DEL PASO 1 */
+              <>
+                <div className="cart-summary-line total" style={{ marginBottom: '0.85rem' }}>
+                  <span>Total estimado:</span>
+                  <span>{formatMoney(cartSubtotal)} MXN</span>
                 </div>
-              )}
-            </div>
-
-            <div className="cart-summary-line">
-              <span>Subtotal estimado:</span>
-              <span>{formatMoney(cartSubtotal)}</span>
-            </div>
-            <div className="cart-summary-line">
-              <span>Envase / Servicio:</span>
-              <span style={{ color: '#15803d', fontWeight: 700 }}>Gratis</span>
-            </div>
-            <div className="cart-summary-line total">
-              <span>Total a pagar:</span>
-              <span>{formatMoney(cartSubtotal)} MXN</span>
-            </div>
-
-            {/* Botón de Enviar Pedido o Aviso Neutro de Modo Solo Lectura */}
-            {isSuspended ? (
-              <div
-                className="cart-readonly-notice"
-                style={{
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  margin: '0.85rem 0',
-                  textAlign: 'center',
-                }}
-              >
-                <span style={{ fontSize: '1.4rem', display: 'block', marginBottom: '0.25rem' }}>📋</span>
-                <strong style={{ display: 'block', color: '#991b1b', fontSize: '0.925rem' }}>
-                  Menú solo consulta
-                </strong>
-                <p style={{ margin: '0.35rem 0 0 0', color: '#7f1d1d', fontSize: '0.8rem', lineHeight: 1.45 }}>
-                  {billingStatus?.customerNotice?.message ||
-                    'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar directamente con el personal en nuestro establecimiento.'}
-                </p>
-              </div>
+                <button
+                  type="button"
+                  className="btn-step-next"
+                  onClick={() => {
+                    setStep(2);
+                    setFormError('');
+                  }}
+                >
+                  <span>Continuar con la Entrega</span>
+                  <span style={{ fontSize: '1.15rem' }}>→</span>
+                </button>
+                <button type="button" className="btn-clear-cart" onClick={clearCart}>
+                  Vaciar toda la selección
+                </button>
+              </>
             ) : (
-              <button type="button" className="btn-whatsapp-order" onClick={sendWhatsAppOrder}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                </svg>
-                <span>Enviar Pedido por WhatsApp</span>
-              </button>
-            )}
+              /* FOOTER DEL PASO 2 */
+              <>
+                <div className="cart-summary-line">
+                  <span>Subtotal estimado:</span>
+                  <span>{formatMoney(cartSubtotal)}</span>
+                </div>
+                <div className="cart-summary-line">
+                  <span>Envase / Servicio:</span>
+                  <span style={{ color: '#15803d', fontWeight: 700 }}>Gratis</span>
+                </div>
+                <div className="cart-summary-line total">
+                  <span>Total a pagar:</span>
+                  <span>{formatMoney(cartSubtotal)} MXN</span>
+                </div>
 
-            <button type="button" className="btn-clear-cart" onClick={clearCart}>
-              Vaciar toda la selección
-            </button>
+                {isSuspended ? (
+                  <div
+                    className="cart-readonly-notice"
+                    style={{
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '12px',
+                      padding: '1rem',
+                      margin: '0.85rem 0',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: '1.4rem', display: 'block', marginBottom: '0.25rem' }}>📋</span>
+                    <strong style={{ display: 'block', color: '#991b1b', fontSize: '0.925rem' }}>
+                      Menú solo consulta
+                    </strong>
+                    <p style={{ margin: '0.35rem 0 0 0', color: '#7f1d1d', fontSize: '0.8rem', lineHeight: 1.45 }}>
+                      {billingStatus?.customerNotice?.message ||
+                        'Los pedidos por WhatsApp se encuentran pausados temporalmente. Puedes revisar todo nuestro menú y ordenar directamente con el personal en nuestro establecimiento.'}
+                    </p>
+                  </div>
+                ) : (
+                  <button type="button" className="btn-whatsapp-order" onClick={sendWhatsAppOrder}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
+                    <span>Enviar Pedido por WhatsApp</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="btn-step-prev"
+                  onClick={() => {
+                    setStep(1);
+                    setFormError('');
+                  }}
+                >
+                  ← Volver a modificar platillos
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
